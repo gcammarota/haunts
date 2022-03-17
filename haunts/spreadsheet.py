@@ -90,7 +90,7 @@ def sync_events(config_dir, sheet, data, calendars, days, month):
             continue
 
         try:
-            if row[headers_id["Action"]] is not None:
+            if row[headers_id["Action"]]:
                 continue
         except IndexError:
             # We have no data there
