@@ -70,7 +70,6 @@ def sync_events(config_dir, sheet, data, calendars, days, month):
     last_to_time = None
     last_date = None
 
-    import pdb; pdb.set_trace()
     for y, row in enumerate(data["values"]):
         current_date = get_col(row, headers_id["Date"])
         date = ORIGIN_TIME + datetime.timedelta(days=current_date)
