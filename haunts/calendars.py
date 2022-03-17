@@ -46,7 +46,7 @@ def init(config_dir):
     get_credentials(config_dir)
 
 
-def create_event(config_dir, calendar, date, summary, details, length, from_time=None):
+def create_event(config_dir, calendar, date, summary, details, length, attendees, from_time=None):
     get_credentials(config_dir)
     service = build("calendar", "v3", credentials=creds)
 
@@ -87,6 +87,7 @@ def create_event(config_dir, calendar, date, summary, details, length, from_time
         "description": details,
         "start": startParams,
         "end": endParams,
+        "attendees": attendees,
     }
 
     LOGGER.debug(calendar, date, summary, details, length, event, from_time)

@@ -70,6 +70,7 @@ def sync_events(config_dir, sheet, data, calendars, days, month):
     last_to_time = None
     last_date = None
 
+    import pdb; pdb.set_trace()
     for y, row in enumerate(data["values"]):
         current_date = get_col(row, headers_id["Date"])
         date = ORIGIN_TIME + datetime.timedelta(days=current_date)
@@ -103,7 +104,12 @@ def sync_events(config_dir, sheet, data, calendars, days, month):
                 f"Cannot find a calendar id associated to project \"{get_col(row, headers_id['Project'])}\""
             )
             sys.exit(1)
-
+        attendees = []
+        if "Attendees" in headers_id:
+            attendees = [
+                {"email": attendee}
+                for attendee in get_col(row, headers_id["Attendees"]).split("\n")
+            ]
         event = create_event(
             config_dir=config_dir,
             calendar=calendar,
@@ -111,6 +117,7 @@ def sync_events(config_dir, sheet, data, calendars, days, month):
             summary=get_col(row, headers_id["Activity"]),
             details=get_col(row, headers_id["Details"]),
             length=get_col(row, headers_id["Spent"]),
+            attendees=attendees,
             from_time=last_to_time,
         )
         last_to_time = event["next_slot"]
