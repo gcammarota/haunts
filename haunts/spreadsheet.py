@@ -14,6 +14,7 @@ from .calendars import create_event, ORIGIN_TIME
 # If modifying these scopes, delete the sheets-token file
 SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
 creds = None
+FULL_EVENT_HOURS = 8
 
 
 def get_col(row, index):
@@ -221,12 +222,11 @@ def compute_hours_report(month):
     headers_id = get_headers(sheet, month, indexes=True)
 
     report = {}
-    default_spent = 8
     for row in data["values"]:
         issue = get_col(row, headers_id["Issue"])
         spent = get_col(row, headers_id["Spent"])
         if not spent:
-            spent = default_spent
+            spent = FULL_EVENT_HOURS
         report.update({issue: report.get(issue, 0) + float(spent)})
 
     return report
