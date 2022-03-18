@@ -74,7 +74,3 @@ def report(month, day=[]):
 
 
 haunts.add_command(report, "report")
-
-
-if __name__ == "__main__":
-    sys.exit(sync())  # pragma: no cover
