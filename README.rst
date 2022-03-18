@@ -117,6 +117,16 @@ Sheet format should be:
   
   See below. If emtpy: it will be filled with an ``I`` when an event is created
 
+**Issue**
+  (text)
+
+  ID to uniquely identify the issue. Used for the issues report. 
+
+**Attendees**
+  (text, optional)
+
+  Use it to add people to the event. It can be a list of comma separated email addresses.
+
 Configuring projects
 --------------------
 

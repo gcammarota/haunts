@@ -106,8 +106,8 @@ def sync_events(config_dir, sheet, data, calendars, days, month):
         attendees = []
         if "Attendees" in headers_id:
             attendees = [
-                {"email": attendee}
-                for attendee in get_col(row, headers_id["Attendees"]).split("\n")
+                {"email": attendee.strip()}
+                for attendee in get_col(row, headers_id["Attendees"]).split(",")
             ]
         event = create_event(
             config_dir=config_dir,
@@ -191,3 +191,54 @@ def sync_report(config_dir, month, days=[]):
 
     calendars = get_calendars(sheet)
     sync_events(config_dir, sheet, data, calendars, days=days, month=month)
+
+
+def compute_hours_report(config_dir, month, days=[]):
+    get_credentials(config_dir)
+
+    service = build("sheets", "v4", credentials=creds)
+
+    # Call the Sheets API
+    sheet = service.spreadsheets()
+
+    try:
+        document_id = get("CONTROLLER_SHEET_DOCUMENT_ID")
+    except KeyError:
+        print(
+            "A value for CONTROLLER_SHEET_DOCUMENT_ID is required but "
+            "is not specified in your ini file"
+        )
+        sys.exit(1)
+
+    data = (
+        sheet.values()
+        .get(
+            spreadsheetId=document_id,
+            range=f"{month}!A2:ZZ",
+            valueRenderOption="UNFORMATTED_VALUE",
+        )
+        .execute()
+    )
+
+    headers_id = get_headers(sheet, month, indexes=True)
+
+    report = {}
+    default_spent = 8
+    for row in data["values"]:
+        issue = get_col(row, headers_id["Issue"])
+        spent = get_col(row, headers_id["Spent"])
+        if not spent:
+            spent = default_spent
+        report.update({issue: report.get(issue, 0) + float(spent)})
+
+    return report
+
+
+def compute_report(config_dir, month, days=[]):
+    report = compute_hours_report(
+        config_dir,
+        month,
+        days=[datetime.datetime.strptime(d, "%Y-%m-%d") for d in days],
+    )
+    for issue in report:
+        print(f"#{issue}: {report[issue]}")

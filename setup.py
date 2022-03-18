@@ -37,7 +37,7 @@ setup(
     description="Fill and sync Google Calendars with events taken from a Google spreadsheet",
     entry_points={
         "console_scripts": [
-            "haunts=haunts.cli:main",
+            "haunts=haunts.cli:haunts",
         ],
     },
     install_requires=requirements,
