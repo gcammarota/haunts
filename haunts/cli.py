@@ -58,19 +58,10 @@ haunts.add_command(sync, "sync")
 
 @click.command()
 @click.argument("month")
-@click.option(
-    "--day",
-    "-d",
-    multiple=True,
-)
-def report(month, day=[]):
+def report(month):
     """Shows number of spent hours for each issues."""
     click.echo("Issues report [hours]")
-    compute_report(
-        config_dir,
-        month,
-        days=[datetime.datetime.strptime(d, "%Y-%m-%d") for d in day]
-    )
+    compute_report(config_dir, month)
 
 
 haunts.add_command(report, "report")

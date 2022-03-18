@@ -193,9 +193,7 @@ def sync_report(config_dir, month, days=[]):
     sync_events(config_dir, sheet, data, calendars, days=days, month=month)
 
 
-def compute_hours_report(config_dir, month, days=[]):
-    get_credentials(config_dir)
-
+def compute_hours_report(month):
     service = build("sheets", "v4", credentials=creds)
 
     # Call the Sheets API
@@ -234,11 +232,8 @@ def compute_hours_report(config_dir, month, days=[]):
     return report
 
 
-def compute_report(config_dir, month, days=[]):
-    report = compute_hours_report(
-        config_dir,
-        month,
-        days=[datetime.datetime.strptime(d, "%Y-%m-%d") for d in days],
-    )
+def compute_report(config_dir, month):
+    get_credentials(config_dir)
+    report = compute_hours_report(month)
     for issue in report:
         print(f"#{issue}: {report[issue]}")
