@@ -223,11 +223,13 @@ def compute_hours_report(month):
 
     report = {}
     for row in data["values"]:
-        issue = get_col(row, headers_id["Issue"])
+        days = get_col(row, headers_id["Date"])
+        date = ORIGIN_TIME + datetime.timedelta(days=days)
+        issue = get_col(row, headers_id["Activity"])
         spent = get_col(row, headers_id["Spent"])
         if not spent:
             spent = FULL_EVENT_HOURS
-        report.update({issue: report.get(issue, 0) + float(spent)})
+        report.update({issue: {"date": date, "time": report.get(issue, {}).get("time", 0) + float(spent)}})
 
     return report
 
@@ -235,5 +237,5 @@ def compute_hours_report(month):
 def compute_report(config_dir, month):
     get_credentials(config_dir)
     report = compute_hours_report(month)
-    for issue in report:
-        print(f"#{issue}: {report[issue]}")
+    for issue, values in report.items():
+        print(values['date'].strftime("%d/%m/%Y"), "-", f"{issue} -> {values['time']}")
