@@ -75,8 +75,8 @@ The following command will instead explode the report showing all the events:
 
     haunts report -e <SHEET_NAME>
 
-To filter results on issues or projects, options `-i` and `-p` can be used to search for strings in
-in **Issue** and **Project** columns respectively.
+To filter results on issues or projects, options `-i` and `-p` can be used to search for strings
+respectively in **Issue** and **Project** columns of the month sheet.
 
 How it works
 ------------
