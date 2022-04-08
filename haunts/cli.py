@@ -1,5 +1,6 @@
 """Console script for haunts."""
 import datetime
+from email.policy import default
 import os
 import sys
 from pathlib import Path
@@ -9,7 +10,8 @@ import click
 from .ini import create_default, init
 
 from .calendars import init as init_calendars
-from .spreadsheet import sync_report, compute_report
+from .spreadsheet import sync_report
+from . import report
 
 config_dir = Path(os.path.expanduser("~/.haunts"))
 
@@ -58,10 +60,45 @@ haunts.add_command(sync, "sync")
 
 @click.command()
 @click.argument("month")
-def report(month):
-    """Shows number of spent hours for each issues."""
-    click.echo("Issues report [hours]")
-    compute_report(config_dir, month)
+@click.option(
+    "--issue", "-i", default=None
+)
+@click.option(
+    "--project", "-p", default=None
+)
+@click.option(
+    "--explode", "-e", is_flag=True, default=False
+)
+@click.option(
+    "-c1", default=report.COL_SIZES[0], show_default=True,
+    help="Report first column size in characters."
+)
+@click.option(
+    "-c2", default=report.COL_SIZES[1], show_default=True,
+    help="Report second column size in characters."
+)
+@click.option(
+    "-c3", default=report.COL_SIZES[2], show_default=True,
+    help="Report third column size in characters."
+)
+@click.option(
+    "-c4", default=report.COL_SIZES[3], show_default=True,
+    help="Report fourth column size in characters (Detailed report)."
+)
+@click.option(
+    "-c5", default=report.COL_SIZES[4], show_default=True,
+    help="Report fifth column size in characters (Detailed report)."
+)
+def show_report(month, issue, project, explode, c1, c2, c3, c4, c5):
+    """Shows number of spent hours for each issues and projects."""
+    report.compute_report(
+        config_dir=config_dir,
+        month=month,
+        issue=issue,
+        project=project,
+        explode=explode,
+        col_sizes=[c1, c2, c3, c4, c5],
+    )
 
 
-haunts.add_command(report, "report")
+haunts.add_command(show_report, "report")

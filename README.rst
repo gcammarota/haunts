@@ -21,7 +21,7 @@ How to install
 
 .. code-block:: bash
 
-   pip install haunts
+    pip install haunts
 
 Prerequisites
 =============
@@ -42,15 +42,17 @@ Command line help is accessible using:
 
 .. code-block:: bash
 
-   haunts --help
+    haunts --help
+    haunts sync --help
+    haunts report --help
 
 Usage
 
 .. code-block:: bash
 
-   haunts <SHEET_NAME>
+    haunts sync <SHEET_NAME>
 
-The first time ``haunts`` will be run, it just create an `.haunts` folder in your home directory with configuration files inside, then it exits.
+The first time ``haunts sync`` will be run, it just create an `.haunts` folder in your home directory with configuration files inside, then it exits.
 You *must* edit the ``~/.haunts/haunts.ini`` file.
 
 Following run attempts will work normally.
@@ -59,7 +61,22 @@ You can also limits events interaction to a single day, or a set of days by usin
 
 .. code-block:: bash
 
-   haunts --day=2021-07-08 <SHEET_NAME>
+    haunts sync --day=2021-07-08 <SHEET_NAME>
+
+To show the cumulative report on the terminal:
+
+.. code-block:: bash
+
+    haunts report <SHEET_NAME>
+
+The following command will instead explode the report showing all the events:
+
+.. code-block:: bash
+
+    haunts report -e <SHEET_NAME>
+
+To filter results on issues or projects, options `-i` and `-p` can be used to search for strings in
+in **Issue** and **Project** columns respectively.
 
 How it works
 ------------
@@ -78,49 +95,54 @@ Sheet format should be:
 
 **Date**
   (date)
-  
+
   The day where the event will be created
 
 **Spent**
   (number or empty)
-  
+
   How long the event will last. Leave empty to create a full-day event.
 
 **Project**
   (number)
-  
+
   Project name (see below)
 
 **Activity**
   (string)
-  
+
   Summary of the event
 
 **Details**
   (string, optional)
-  
+
   Additional text for the event description
 
 **Event id**
   (string)
-  
+
   Leave this empty. It will be filled with the id of the generated event
 
 **Link**
   (text)
-  
+
   Leave this empty. It will be filled with a link to the event inside Google Calendar.
   Put an ``I`` manually if you want to ignore an entry and avoid event creation.
 
 **Action**
   (char)
-  
+
   See below. If emtpy: it will be filled with an ``I`` when an event is created
 
 **Issue**
   (text)
 
-  ID to uniquely identify the issue. Used for the issues report. 
+  ID to uniquely identify the issue. Used for the issues report.
+
+**Title**
+  (text)
+
+  Issue Title. Used for the issues report.
 
 **Attendees**
   (text, optional)
@@ -150,7 +172,7 @@ Let says you run something like this:
 
 .. code-block:: bash
 
-   haunts --day=2021-07-08 July
+    haunts sync --day=2021-07-08 July
 
 *haunts*  will access the sheet named ``July`` in the spreadsheet configured in the .ini file.
 Only rows where the ``Date`` filed will match the ``--day`` parameter will be considered.

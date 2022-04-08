@@ -14,7 +14,6 @@ from .calendars import create_event, ORIGIN_TIME
 # If modifying these scopes, delete the sheets-token file
 SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
 creds = None
-FULL_EVENT_HOURS = 8
 
 
 def get_col(row, index):
@@ -192,50 +191,3 @@ def sync_report(config_dir, month, days=[]):
 
     calendars = get_calendars(sheet)
     sync_events(config_dir, sheet, data, calendars, days=days, month=month)
-
-
-def compute_hours_report(month):
-    service = build("sheets", "v4", credentials=creds)
-
-    # Call the Sheets API
-    sheet = service.spreadsheets()
-
-    try:
-        document_id = get("CONTROLLER_SHEET_DOCUMENT_ID")
-    except KeyError:
-        print(
-            "A value for CONTROLLER_SHEET_DOCUMENT_ID is required but "
-            "is not specified in your ini file"
-        )
-        sys.exit(1)
-
-    data = (
-        sheet.values()
-        .get(
-            spreadsheetId=document_id,
-            range=f"{month}!A2:ZZ",
-            valueRenderOption="UNFORMATTED_VALUE",
-        )
-        .execute()
-    )
-
-    headers_id = get_headers(sheet, month, indexes=True)
-
-    report = {}
-    for row in data["values"]:
-        days = get_col(row, headers_id["Date"])
-        date = ORIGIN_TIME + datetime.timedelta(days=days)
-        issue = get_col(row, headers_id["Activity"])
-        spent = get_col(row, headers_id["Spent"])
-        if not spent:
-            spent = FULL_EVENT_HOURS
-        report.update({issue: {"date": date, "time": report.get(issue, {}).get("time", 0) + float(spent)}})
-
-    return report
-
-
-def compute_report(config_dir, month):
-    get_credentials(config_dir)
-    report = compute_hours_report(month)
-    for issue, values in report.items():
-        print(values['date'].strftime("%d/%m/%Y"), "-", f"{issue} -> {values['time']}")
