@@ -96,12 +96,22 @@ Sheet format should be:
 **Date**
   (date)
 
-  The day where the event will be created
+  The day where the event will be created.
+
+**Start**
+  (number or empty)
+
+  Start time of the event in the format h:mm (24h).
+
+**Stop**
+  (number or empty)
+
+  End time of the event in the format h:mm (24h).
 
 **Spent**
   (number or empty)
 
-  How long the event will last. Leave empty to create a full-day event.
+  Leave this empty. It will be filled with the duration of the event.
 
 **Project**
   (number)

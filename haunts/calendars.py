@@ -46,41 +46,27 @@ def init(config_dir):
     get_credentials(config_dir)
 
 
-def create_event(config_dir, calendar, date, summary, details, length, attendees, from_time=None):
+def create_event(config_dir, calendar, date, summary, details, start_time, stop_time, attendees, from_time=None):
     get_credentials(config_dir)
     service = build("calendar", "v3", credentials=creds)
 
     from_time = from_time or get("START_TIME")
-    start = datetime.datetime.strptime(
-        f"{date.strftime('%Y-%m-%d')}T{from_time}:00{LOCAL_TIMEZONE}",
-        f"%Y-%m-%dT%H:%M:%S%z",
+    today = datetime.datetime.strptime(
+        f"{date.strftime('%Y-%m-%d')}T00:00:00{LOCAL_TIMEZONE}",
+        "%Y-%m-%dT%H:%M:%S%z",
     )
 
+    start = today + datetime.timedelta(days=start_time)
+    end = today + datetime.timedelta(days=stop_time)
     startParams = None
     endParams = None
-    haveLength = length is not None and type(length) is not str
-    duration = None
-    if haveLength:
-        duration = float(length)
-        delta = datetime.timedelta(hours=duration)
-    else:
-        delta = datetime.timedelta(hours=0)
-    end = start + delta
 
-    if haveLength:
-        startParams = {
-            "dateTime": start.isoformat(),
-        }
-        endParams = {
-            "dateTime": end.isoformat(),
-        }
-    else:
-        startParams = {
-            "date": start.isoformat()[:10],
-        }
-        endParams = {
-            "date": (end + datetime.timedelta(days=1)).isoformat()[:10],
-        }
+    startParams = {
+        "dateTime": start.isoformat(),
+    }
+    endParams = {
+        "dateTime": end.isoformat(),
+    }
 
     event = {
         "summary": summary,
@@ -90,15 +76,18 @@ def create_event(config_dir, calendar, date, summary, details, length, attendees
         "attendees": attendees,
     }
 
-    LOGGER.debug(calendar, date, summary, details, length, event, from_time)
+    LOGGER.debug(calendar, date, summary, details, start, end, event)
     event = service.events().insert(calendarId=calendar, body=event).execute()
     LOGGER.debug(event.items())
+    today_str = today.strftime("%d/%m/%Y")
+    start_str = start.strftime("%H:%M")
+    end_str = end.strftime("%H:%M")
     print(
-        f'Created event "{summary}" ({f"{duration}h" if duration else "full day"}) on calendar {event["organizer"]["displayName"]}'
+        f'Created event "{summary}" ({f"{today_str} {start_str} - {end_str}"}) on calendar {event["organizer"]["displayName"]}'
     )
     event_data = {
         "id": event["id"],
-        "next_slot": end.strftime("%H:%M") if haveLength else from_time,
+        "next_slot": end.strftime("%H:%M"),
         "link": event["htmlLink"],
     }
     return event_data

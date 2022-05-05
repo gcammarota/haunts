@@ -43,8 +43,10 @@ def compute_hours_report(month):
 
     report = {}
     for row in data["values"]:
-        days = spreadsheet.get_col(row, headers_id["Date"])
-        date = ORIGIN_TIME + datetime.timedelta(days=days)
+        date = spreadsheet.get_col(row, headers_id["Date"])
+        if not date:
+            continue
+        date = ORIGIN_TIME + datetime.timedelta(days=date)
         issue = spreadsheet.get_col(row, headers_id["Issue"])
         title = spreadsheet.get_col(row, headers_id["Title"])
         spent = spreadsheet.get_col(row, headers_id["Spent"])

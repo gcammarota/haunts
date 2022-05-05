@@ -72,6 +72,8 @@ def sync_events(config_dir, sheet, data, calendars, days, month):
 
     for y, row in enumerate(data["values"]):
         current_date = get_col(row, headers_id["Date"])
+        if not current_date:
+            continue
         date = ORIGIN_TIME + datetime.timedelta(days=current_date)
 
         # In case we changed day, let's restart from START_TIME
@@ -115,7 +117,8 @@ def sync_events(config_dir, sheet, data, calendars, days, month):
             date=date,
             summary=get_col(row, headers_id["Activity"]),
             details=get_col(row, headers_id["Details"]),
-            length=get_col(row, headers_id["Spent"]),
+            start_time=get_col(row, headers_id["Start"]),
+            stop_time=get_col(row, headers_id["Stop"]),
             attendees=attendees,
             from_time=last_to_time,
         )
