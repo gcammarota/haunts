@@ -13,13 +13,17 @@ ROW_FORMAT = "{:<{a}} {:<{b}} {:<{c}}"
 SEP_FORMAT = "{:-^{a}} {:-^{b}} {:-^{c}}"
 ROW_FORMAT_MORE = "{:<{a}} {:<{b}} {:<{c}} {:<{d}} {:>{e}}"
 SEP_FORMAT_MORE = "{:-^{a}} {:-^{b}} {:-^{c}} {:-^{d}} {:-^{e}}"
+INCOMPLETE_FORMAT = "{:<{a}} {:^{b}}"
+INCOMPLETE_SEP_FORMAT = "{:-^{a}} {:-^{b}}"
 COL_SIZES = (20, 20, 5, 10, 30)
+RED = "\x1b[1;31;40m{}\x1b[0m"
+GREEN = "\x1b[1;32;40m{}\x1b[0m"
 
 
-def compute_hours_report(month):
+def prepare_report_data(month=None):
     service = build("sheets", "v4", credentials=spreadsheet.creds)
     # Call the Sheets API
-    sheet = service.spreadsheets()
+    document = service.spreadsheets()
     try:
         document_id = get("CONTROLLER_SHEET_DOCUMENT_ID")
     except KeyError:
@@ -29,8 +33,12 @@ def compute_hours_report(month):
         )
         sys.exit(1)
 
+    if month is None:
+        sheets = document.get(spreadsheetId=document_id).execute()
+        month = sheets["sheets"][-1]["properties"]["title"]
+    print("Month: {}".format(month))
     data = (
-        sheet.values()
+        document.values()
         .get(
             spreadsheetId=document_id,
             range=f"{month}!A2:ZZ",
@@ -39,7 +47,12 @@ def compute_hours_report(month):
         .execute()
     )
 
-    headers_id = spreadsheet.get_headers(sheet, month, indexes=True)
+    headers_id = spreadsheet.get_headers(document, month, indexes=True)
+    return data, headers_id
+
+
+def compute_report(month=None):
+    data, headers_id = prepare_report_data(month)
 
     report = {}
     for row in data["values"]:
@@ -59,22 +72,74 @@ def compute_hours_report(month):
     return report
 
 
-def print_report(report, c1=20, c2=20, c3=5):
-    print(ROW_FORMAT.format("Project", "Issue", "Hours", a=c1, b=c2, c=c3))
-    print(SEP_FORMAT.format(*[""] * 3, a=c1, b=c2, c=c3))
+def compute_missing(month=None):
+    data, headers_id = prepare_report_data(month)
+
+    report = {}
+    for row in data["values"]:
+        date = spreadsheet.get_col(row, headers_id["Date"])
+        if not date:
+            continue
+        date = ORIGIN_TIME + datetime.timedelta(days=date)
+        issue = spreadsheet.get_col(row, headers_id["Issue"])
+        title = spreadsheet.get_col(row, headers_id["Title"])
+        spent = spreadsheet.get_col(row, headers_id["Spent"])
+        project = spreadsheet.get_col(row, headers_id["Project"])
+        if not spent:
+            spent = FULL_EVENT_HOURS
+        report.setdefault(date, []).append(
+            {"project": project, "issue": issue, "time": float(spent), "title": title})
+
+    # Select only the days with total spent time less than 8h
+    missing_report = {}
+    for d, r in report.items():
+        day_total_spent = sum([el["time"] for el in r])
+        if day_total_spent != 8:
+            missing_report.update({(d, day_total_spent): r})
+
+    return missing_report
+
+
+def tune_report(config_dir, month=None, issue=None, project=None):
+    spreadsheet.get_credentials(config_dir)
+    report = compute_report(month)
+    if issue is not None:
+        report = {pair: report[pair] for pair in report if issue in pair[1]}
+    if project is not None:
+        report = {pair: report[pair] for pair in report if project in pair[0]}
+    return report
+
+
+def print_table_header(row_format, sep_format, *args, **kwargs):
+    col_rows = len(kwargs)
+    print(sep_format.format(*[""] * col_rows, **kwargs))
+    print(row_format.format(*args, **kwargs))
+    print(sep_format.format(*[""] * col_rows, **kwargs))
+
+
+def print_report(config_dir, month, issue, project, col_sizes):
+    report = tune_report(config_dir, month, issue, project)
+
+    c1, c2, c3 = col_sizes
+    print_table_header(
+        ROW_FORMAT, SEP_FORMAT,
+        "Project", "Issue", "Hours",
+        a=c1, b=c2, c=c3
+    )
     for pair, values in report.items():
         print(ROW_FORMAT.format(
             *pair, sum(v["time"] for v in values), a=c1, b=c2, c=c3)
         )
 
 
-def print_detailed_report(report, c1=20, c2=20, c3=5, c4=10, c5=30):
-    print(ROW_FORMAT_MORE.format(
+def print_detailed_report(config_dir, month, issue, project, col_sizes):
+    report = tune_report(config_dir, month, issue, project)
+
+    c1, c2, c3, c4, c5 = col_sizes
+    print_table_header(
+        ROW_FORMAT_MORE, SEP_FORMAT_MORE,
         "Project", "Issue", "Hours", "Date", "Title",
-        a=c1, b=c2, c=c3, d=c4, e=c5)
-    )
-    print(SEP_FORMAT_MORE.format(
-        *[""] * 5, a=c1, b=c2, c=c3, d=c4, e=c5)
+        a=c1, b=c2, c=c3, d=c4, e=c5
     )
     for pair, values in report.items():
         for v in values:
@@ -84,18 +149,21 @@ def print_detailed_report(report, c1=20, c2=20, c3=5, c4=10, c5=30):
             )
 
 
-def compute_report(
-    config_dir, month, issue, project, explode, col_sizes
-):
-    c1, c2, c3, c4, c5 = col_sizes
+def print_incomplete_days(config_dir, month=None):
     spreadsheet.get_credentials(config_dir)
-    report = compute_hours_report(month)
-    if issue is not None:
-        report = {pair: report[pair] for pair in report if issue in pair[1]}
-    if project is not None:
-        report = {pair: report[pair] for pair in report if project in pair[0]}
-
-    if explode:
-        print_detailed_report(report, c1, c2, c3, c4, c5)
-    else:
-        print_report(report, c1, c2, c3)
+    report = compute_missing(month)
+    if not report:
+        print("🍺 Everything is fine!🍺 ")
+        return
+    print_table_header(
+        INCOMPLETE_FORMAT, INCOMPLETE_SEP_FORMAT,
+        "Incomplete", "Hours",
+        a=COL_SIZES[3], b=COL_SIZES[2]
+    )
+    for day, partial in report:
+        partial = RED.format(str(partial)) if partial < FULL_EVENT_HOURS \
+            else GREEN.format(str(partial))
+        print(INCOMPLETE_FORMAT.format(
+            day.strftime("%d/%m/%Y"), partial,
+            a=COL_SIZES[3], b=COL_SIZES[2])
+        )

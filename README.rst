@@ -14,7 +14,9 @@ B-Open Haunts
 What is does
 ============
 
-Fill Google Calendars with events taken from a Google Spreadsheet.
+- Fill Google Calendars with events taken from a Google Spreadsheet.
+- Produce a report with events taken from a Google Spreadsheet.
+- Check if all events in a day sum up to the right duration.
 
 How to install
 ==============
@@ -45,6 +47,7 @@ Command line help is accessible using:
     haunts --help
     haunts sync --help
     haunts report --help
+    haunts check --help
 
 Usage
 
@@ -77,6 +80,15 @@ The following command will instead explode the report showing all the events:
 
 To filter results on issues or projects, options `-i` and `-p` can be used to search for strings
 respectively in **Issue** and **Project** columns of the month sheet.
+
+.. code-block:: bash
+
+    haunts check <SHEET_NAME>
+
+The following command will show days reported to have a total worked hours different than the full day expected total hours (default 8).
+It prints the total worked hours per day in red color if it is less the expected, in green color if bigger.
+
+Each command will use the last sheet in the Google spreadsheet if no <SHEET_NAME> is provided.
 
 How it works
 ------------

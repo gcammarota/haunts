@@ -1,6 +1,5 @@
 """Console script for haunts."""
 import datetime
-from email.policy import default
 import os
 import sys
 from pathlib import Path
@@ -37,7 +36,9 @@ def haunts():
 
 
 @click.command()
-@click.argument("month")
+@click.option(
+    "--month", "-m", default=None
+)
 @click.option(
     "--day",
     "-d",
@@ -59,7 +60,9 @@ haunts.add_command(sync, "sync")
 
 
 @click.command()
-@click.argument("month")
+@click.option(
+    "--month", "-m", default=None
+)
 @click.option(
     "--issue", "-i", default=None
 )
@@ -67,7 +70,7 @@ haunts.add_command(sync, "sync")
     "--project", "-p", default=None
 )
 @click.option(
-    "--explode", "-e", is_flag=True, default=False
+    "--more", "-m", is_flag=True, default=False
 )
 @click.option(
     "-c1", default=report.COL_SIZES[0], show_default=True,
@@ -89,16 +92,36 @@ haunts.add_command(sync, "sync")
     "-c5", default=report.COL_SIZES[4], show_default=True,
     help="Report fifth column size in characters (Detailed report)."
 )
-def show_report(month, issue, project, explode, c1, c2, c3, c4, c5):
+def show_report(month, issue, project, more, c1, c2, c3, c4, c5):
     """Shows number of spent hours for each issues and projects."""
-    report.compute_report(
-        config_dir=config_dir,
-        month=month,
-        issue=issue,
-        project=project,
-        explode=explode,
-        col_sizes=[c1, c2, c3, c4, c5],
-    )
+    if more:
+        report.print_detailed_report(
+            config_dir=config_dir,
+            month=month,
+            issue=issue,
+            project=project,
+            col_sizes=[c1, c2, c3, c4, c5],
+        )
+    else:
+        report.print_report(
+            config_dir=config_dir,
+            month=month,
+            issue=issue,
+            project=project,
+            col_sizes=[c1, c2, c3],
+        )
 
 
 haunts.add_command(show_report, "report")
+
+
+@click.command()
+@click.option(
+    "--month", "-m", default=None
+)
+def check(month):
+    """Shows number of spent hours for each anomalous worked (!= 8h) day."""
+    report.print_incomplete_days(config_dir, month)
+
+
+haunts.add_command(check, "check")
