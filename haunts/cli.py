@@ -70,7 +70,10 @@ haunts.add_command(sync, "sync")
     "--project", "-p", default=None
 )
 @click.option(
-    "--more", "-m", is_flag=True, default=False
+    "--more", "-e", is_flag=True, default=False
+)
+@click.option(
+    "--unreported_only", "-u", is_flag=True, default=False,
 )
 @click.option(
     "-c1", default=report.COL_SIZES[0], show_default=True,
@@ -92,7 +95,7 @@ haunts.add_command(sync, "sync")
     "-c5", default=report.COL_SIZES[4], show_default=True,
     help="Report fifth column size in characters (Detailed report)."
 )
-def show_report(month, issue, project, more, c1, c2, c3, c4, c5):
+def show_report(month, issue, project, more, unreported_only, c1, c2, c3, c4, c5):
     """Shows number of spent hours for each issues and projects."""
     if more:
         report.print_detailed_report(
@@ -100,6 +103,7 @@ def show_report(month, issue, project, more, c1, c2, c3, c4, c5):
             month=month,
             issue=issue,
             project=project,
+            unreported_only=unreported_only,
             col_sizes=[c1, c2, c3, c4, c5],
         )
     else:
@@ -108,6 +112,7 @@ def show_report(month, issue, project, more, c1, c2, c3, c4, c5):
             month=month,
             issue=issue,
             project=project,
+            unreported_only=unreported_only,
             col_sizes=[c1, c2, c3],
         )
 

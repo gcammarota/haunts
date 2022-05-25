@@ -9,10 +9,10 @@ from .calendars import ORIGIN_TIME
 
 
 FULL_EVENT_HOURS = 8
-ROW_FORMAT = "{:<{a}} {:<{b}} {:<{c}}"
-SEP_FORMAT = "{:-^{a}} {:-^{b}} {:-^{c}}"
-ROW_FORMAT_MORE = "{:<{a}} {:<{b}} {:<{c}} {:<{d}} {:>{e}}"
-SEP_FORMAT_MORE = "{:-^{a}} {:-^{b}} {:-^{c}} {:-^{d}} {:-^{e}}"
+ROW_FORMAT = "{:<{a}} {:<{b}} {:>{c}} {:>{c}}"
+SEP_FORMAT = "{:-^{a}} {:-^{b}} {:-^{c}} {:-^{c}}"
+ROW_FORMAT_MORE = "{:<{a}} {:<{b}} {:<{c}} {:<{c}} {:<{d}} {:>{e}}"
+SEP_FORMAT_MORE = "{:-^{a}} {:-^{b}} {:-^{c}} {:-^{c}} {:-^{d}} {:-^{e}}"
 INCOMPLETE_FORMAT = "{:<{a}} {:^{b}}"
 INCOMPLETE_SEP_FORMAT = "{:-^{a}} {:-^{b}}"
 COL_SIZES = (20, 20, 5, 10, 30)
@@ -64,10 +64,11 @@ def compute_report(month=None):
         title = spreadsheet.get_col(row, headers_id["Title"])
         spent = spreadsheet.get_col(row, headers_id["Spent"])
         project = spreadsheet.get_col(row, headers_id["Project"])
+        action = spreadsheet.get_col(row, headers_id["Action"])
         if not spent:
             spent = FULL_EVENT_HOURS
         report.setdefault((project, issue), []).append(
-            {"date": date, "time": float(spent), "title": title})
+            {"date": date, "time": float(spent), "title": title, "action": action})
 
     return report
 
@@ -111,40 +112,47 @@ def tune_report(config_dir, month=None, issue=None, project=None):
 
 
 def print_table_header(row_format, sep_format, *args, **kwargs):
-    col_rows = len(kwargs)
+    col_rows = len(args)
     print(sep_format.format(*[""] * col_rows, **kwargs))
     print(row_format.format(*args, **kwargs))
     print(sep_format.format(*[""] * col_rows, **kwargs))
 
 
-def print_report(config_dir, month, issue, project, col_sizes):
+def print_report(config_dir, month, issue, project, unreported_only, col_sizes):
     report = tune_report(config_dir, month, issue, project)
 
     c1, c2, c3 = col_sizes
     print_table_header(
         ROW_FORMAT, SEP_FORMAT,
-        "Project", "Issue", "Hours",
+        "Project", "Issue", "Added", "Losts",
         a=c1, b=c2, c=c3
     )
     for pair, values in report.items():
+        unreported = sum(v["time"] for v in values if not v["action"])
+        reported = sum(v["time"] for v in values if v["action"] == "I")
+        if unreported_only and unreported == 0:
+            continue  # show only unreported hours
         print(ROW_FORMAT.format(
-            *pair, sum(v["time"] for v in values), a=c1, b=c2, c=c3)
+            *pair, reported, unreported, a=c1, b=c2, c=c3)
         )
 
 
-def print_detailed_report(config_dir, month, issue, project, col_sizes):
+def print_detailed_report(config_dir, month, issue, project, unreported_only, col_sizes):
     report = tune_report(config_dir, month, issue, project)
 
     c1, c2, c3, c4, c5 = col_sizes
     print_table_header(
         ROW_FORMAT_MORE, SEP_FORMAT_MORE,
-        "Project", "Issue", "Hours", "Date", "Title",
+        "Project", "Issue", "Time", "Added", "Date", "Title",
         a=c1, b=c2, c=c3, d=c4, e=c5
     )
     for pair, values in report.items():
         for v in values:
+            is_reported = v["action"] == "I"
+            if unreported_only and is_reported:
+                continue  # show only unreported issues
             print(ROW_FORMAT_MORE.format(
-                *pair, v["time"], v["date"].strftime("%d/%m/%Y"), v["title"],
+                *pair, v["time"], f"{is_reported}", v["date"].strftime("%d/%m/%Y").strip(), v["title"],
                 a=c1, b=c2, c=c3, d=c4, e=c5)
             )
 
