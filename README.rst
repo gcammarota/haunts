@@ -103,6 +103,9 @@ Also: additional columns can be added and they will be ignored.
 
 The partition in multiple sheets is designed to keep every month in a separate sheet, but this is not strictly checked.
 
+`Here <https://docs.google.com/spreadsheets/d/18Ss9r8c9XsrQ4WswQ-YnPfH5y9G4tz1wmrh9GZ8Ta3U>`_ is an example template sheet.
+Only white cells should be filled.
+
 Sheet format should be:
 
 **Date**
@@ -149,12 +152,12 @@ Sheet format should be:
   (text)
 
   Leave this empty. It will be filled with a link to the event inside Google Calendar.
-  Put an ``I`` manually if you want to ignore an entry and avoid event creation.
 
 **Action**
   (char)
 
-  See below. If emtpy: it will be filled with an ``I`` when an event is created
+  If emtpy: it will be filled with an ``I`` when an event is created
+  Put an ``I`` manually if you want to ignore an entry and avoid event creation.
 
 **Issue**
   (text)
@@ -211,8 +214,6 @@ For every rows that match, *haunts* will:
 TODO and known issues
 =====================
 
-* **Rows in the sheet must be sorted ascending**
-* Other actions maybe? Like *E* (for edit)
 * *haunts* will not check for already filled time slots (yet?), so overlapping of events may happens
 
 Why?!

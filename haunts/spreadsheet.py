@@ -106,7 +106,7 @@ def sync_events(config_dir, sheet, data, calendars, days, month):
             )
             sys.exit(1)
         attendees = []
-        if "Attendees" in headers_id:
+        if "Attendees" in headers_id and get_col(row, headers_id["Attendees"]) is not None:
             attendees = [
                 {"email": attendee.strip()}
                 for attendee in get_col(row, headers_id["Attendees"]).split(",")

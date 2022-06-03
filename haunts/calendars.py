@@ -56,17 +56,21 @@ def create_event(config_dir, calendar, date, summary, details, start_time, stop_
         "%Y-%m-%dT%H:%M:%S%z",
     )
 
-    start = today + datetime.timedelta(days=start_time)
-    end = today + datetime.timedelta(days=stop_time)
-    startParams = None
-    endParams = None
+    start = end = today
+    today_str = today.strftime("%d/%m/%Y")
+    spent_comment = "all-day"
+    startParams = {"timeZone": LOCAL_TIMEZONE}
+    endParams = {"timeZone": LOCAL_TIMEZONE}
 
-    startParams = {
-        "dateTime": start.isoformat(),
-    }
-    endParams = {
-        "dateTime": end.isoformat(),
-    }
+    if start_time and stop_time:
+        start = today + datetime.timedelta(days=start_time)
+        startParams.update({"dateTime": start.isoformat()})
+        end = today + datetime.timedelta(days=stop_time)
+        endParams.update({"dateTime": end.isoformat()})
+        spent_comment = f'{start.strftime("%H:%M")}' + " - " + f'{end.strftime("%H:%M")}'
+    else:
+        startParams.update({"date": start.isoformat()[:10]})
+        endParams.update({"date": end.isoformat()[:10]})
 
     event = {
         "summary": summary,
@@ -79,11 +83,8 @@ def create_event(config_dir, calendar, date, summary, details, start_time, stop_
     LOGGER.debug(calendar, date, summary, details, start, end, event)
     event = service.events().insert(calendarId=calendar, body=event).execute()
     LOGGER.debug(event.items())
-    today_str = today.strftime("%d/%m/%Y")
-    start_str = start.strftime("%H:%M")
-    end_str = end.strftime("%H:%M")
     print(
-        f'Created event "{summary}" ({f"{today_str} {start_str} - {end_str}"}) on calendar {event["organizer"]["displayName"]}'
+        f'Created event "{summary}" ({f"{today_str} {spent_comment}"}) on calendar {event["organizer"]["displayName"]}'
     )
     event_data = {
         "id": event["id"],
