@@ -1,15 +1,17 @@
 import sys
 import string
+import time
 import datetime
 
 from googleapiclient.discovery import build
+from googleapiclient.errors import HttpError
 from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 
 from .ini import get
 from . import actions
-from .calendars import create_event, ORIGIN_TIME
+from .calendars import create_event, delete_event, ORIGIN_TIME
 
 # If modifying these scopes, delete the sheets-token file
 SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
@@ -90,13 +92,6 @@ def sync_events(config_dir, sheet, data, calendars, days, month):
         if skip:
             continue
 
-        try:
-            if row[headers_id["Action"]]:
-                continue
-        except IndexError:
-            # We have no data there
-            pass
-
         calendar = None
         try:
             calendar = calendars[get_col(row, headers_id["Project"])]
@@ -111,6 +106,51 @@ def sync_events(config_dir, sheet, data, calendars, days, month):
                 {"email": attendee.strip()}
                 for attendee in get_col(row, headers_id["Attendees"]).split(",")
             ]
+
+        try:
+            action = row[headers_id["Action"]]
+            if action == actions.IGNORE:
+                continue
+            elif action == actions.DELETE:
+                delete_event(
+                    config_dir=config_dir,
+                    calendar=calendar,
+                    event_id=get_col(row, headers_id["Event id"]),
+                )
+                print(f'Deleted event "{get_col(row, headers_id["Activity"])}"')
+                request = sheet.values().batchClear(
+                    spreadsheetId=get("CONTROLLER_SHEET_DOCUMENT_ID"),
+                    body={
+                        "ranges": [
+                            f"{month}!{headers['Event id']}{y + 2}",
+                            f"{month}!{headers['Link']}{y + 2}",
+                            f"{month}!{headers['Action']}{y + 2}",
+                        ],
+                    },
+                )
+
+                try:
+                    request.execute()
+                except HttpError as err:
+                    if err.status_code == 429:
+                        print("Too many requests")
+                        print(err.error_details)
+                        print("haunts will now pause for a while ⏲…")
+                        time.sleep(60)
+                        print("Retrying…")
+                        request.execute()
+                    else:
+                        raise
+
+                continue
+            else:
+                # There's something in the action cell, but not recognized
+                print(f"Unknown action {action}. Ignoring…")
+                continue
+        except IndexError:
+            # We have no data there
+            pass
+
         event = create_event(
             config_dir=config_dir,
             calendar=calendar,

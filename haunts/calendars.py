@@ -1,5 +1,6 @@
 import datetime
 from googleapiclient.discovery import build
+from googleapiclient.errors import HttpError
 from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
@@ -123,3 +124,16 @@ def execute(config_dir):
     for event in events:
         start = event["start"].get("dateTime", event["start"].get("date"))
         print(start, event["summary"])
+
+
+def delete_event(config_dir, calendar, event_id):
+    get_credentials(config_dir)
+    service = build("calendar", "v3", credentials=creds)
+    if not event_id:
+        print("Missing id. Skipping…")
+        return
+    try:
+        service.events().delete(calendarId=calendar, eventId=event_id).execute()
+    except HttpError as err:
+        if err.status_code == 410:
+            print("Event {event_id} already deleted")

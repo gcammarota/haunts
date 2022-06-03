@@ -156,8 +156,7 @@ Sheet format should be:
 **Action**
   (char)
 
-  If emtpy: it will be filled with an ``I`` when an event is created
-  Put an ``I`` manually if you want to ignore an entry and avoid event creation.
+  See below. If empty: it will be filled with an ``I`` when an event is created.
 
 **Issue**
   (text)
@@ -210,6 +209,19 @@ For every rows that match, *haunts* will:
 - If the event will be successfully created, an *I* will be placed in the ``Action`` column.
   This will make other execution of *haunts* to ignore the line.
 - Other columns will be read or filled as described above.
+
+Actions
+-------
+
+Possible values you can find (or put yourself) in the ``Action`` column:
+
+- ``I``
+
+  execution will just ignore this line
+- ``D``
+
+  execution will clear ``Action``, ``Event id`` and ``Link`` cells for this row.
+  So: next execution will likely fill this line again (this is a poor-man-edit)
 
 TODO and known issues
 =====================
