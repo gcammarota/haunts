@@ -72,6 +72,12 @@ To show the cumulative report on the terminal:
 
     haunts report <SHEET_NAME>
 
+To print a report mail on the terminal:
+
+.. code-block:: bash
+
+    haunts report --mail <SHEET_NAME>
+
 The following command will instead explode the report showing all the events:
 
 .. code-block:: bash

@@ -76,6 +76,11 @@ haunts.add_command(sync, "sync")
     "--unreported_only", "-u", is_flag=True, default=False,
 )
 @click.option(
+    "--mail", "-l", is_flag=True, default=False,
+    help="Print a reporting mail with a recap of the holidays enjoyed in the "
+    "last (in the spreadsheet file) or selected month."
+)
+@click.option(
     "-c1", default=report.COL_SIZES[0], show_default=True,
     help="Report first column size in characters."
 )
@@ -95,8 +100,16 @@ haunts.add_command(sync, "sync")
     "-c5", default=report.COL_SIZES[4], show_default=True,
     help="Report fifth column size in characters (Detailed report)."
 )
-def show_report(month, issue, project, more, unreported_only, c1, c2, c3, c4, c5):
+def show_report(month, issue, project, more, unreported_only, mail, c1, c2, c3, c4, c5):
     """Shows number of spent hours for each issues and projects."""
+    if mail:
+        report.print_mail(
+            config_dir=config_dir,
+            month=month,
+            issue=issue,
+            project="ferie",
+        )
+        return
     if more:
         report.print_detailed_report(
             config_dir=config_dir,

@@ -20,7 +20,7 @@ RED = "\x1b[1;31;40m{}\x1b[0m"
 GREEN = "\x1b[1;32;40m{}\x1b[0m"
 
 
-def prepare_report_data(month=None):
+def get_document():
     service = build("sheets", "v4", credentials=spreadsheet.creds)
     # Call the Sheets API
     document = service.spreadsheets()
@@ -32,11 +32,20 @@ def prepare_report_data(month=None):
             "is not specified in your ini file"
         )
         sys.exit(1)
+    return document, document_id
 
+
+def get_month(document, document_id):
+    sheets = document.get(spreadsheetId=document_id).execute()
+    return sheets["sheets"][-1]["properties"]["title"]
+
+
+def prepare_report_data(month=None):
+    document, document_id = get_document()
     if month is None:
-        sheets = document.get(spreadsheetId=document_id).execute()
-        month = sheets["sheets"][-1]["properties"]["title"]
+        month = get_month(document, document_id)
     print("Month: {}".format(month))
+
     data = (
         document.values()
         .get(
@@ -155,6 +164,27 @@ def print_detailed_report(config_dir, month, issue, project, unreported_only, co
                 *pair, v["time"], f"{is_reported}", v["date"].strftime("%d/%m/%Y").strip(), v["title"],
                 a=c1, b=c2, c=c3, d=c4, e=c5)
             )
+
+
+def print_mail(config_dir, month, issue, project):
+    spreadsheet.get_credentials(config_dir)
+    document, document_id = get_document()
+    if month is None:
+        month = get_month(document, document_id)
+    report = tune_report(config_dir, month, issue, project)
+    m, y = month.split(" ")
+    print("")
+    print(f"Presenze {month}\n\n")
+    print("Ciao,\n")
+    print(f"a {m} sempre presente", end="")
+    if report:
+        print(" tranne il:\n")
+    else:
+        print(".")
+    for pair, values in report.items():
+        for v in values:
+            print(f"- {v['date'].strftime('%d').strip()}: {v['title']}")
+    print("\n\nCiao,\n")
 
 
 def print_incomplete_days(config_dir, month=None):
