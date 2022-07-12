@@ -225,7 +225,7 @@ def sync_report(config_dir, month, days=[]):
     if month is None:
         sheets = sheet.get(spreadsheetId=document_id).execute()
         month = sheets["sheets"][-1]["properties"]["title"]
-    print("Month: {}".format(month))
+    print("Sheet: {}".format(month))
     data = (
         sheet.values()
         .get(

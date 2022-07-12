@@ -1,5 +1,6 @@
 import sys
 import datetime
+import locale
 
 from googleapiclient.discovery import build
 
@@ -44,7 +45,7 @@ def prepare_report_data(month=None):
     document, document_id = get_document()
     if month is None:
         month = get_month(document, document_id)
-    print("Month: {}".format(month))
+    print("Sheet: {}\n".format(month))
 
     data = (
         document.values()
@@ -172,9 +173,11 @@ def print_mail(config_dir, month, issue, project):
     if month is None:
         month = get_month(document, document_id)
     report = tune_report(config_dir, month, issue, project)
-    m, y = month.split(" ")
-    print("")
-    print(f"Presenze {month}\n\n")
+    first_date = next(iter(report.items()))[1][0]['date']
+    locale.setlocale(locale.LC_TIME, 'it_IT.UTF-8')
+    m = first_date.strftime('%B').strip()
+    y = first_date.strftime('%Y').strip()
+    print(f"Presenze {m} {y}\n\n")
     print("Ciao,\n")
     print(f"a {m} sempre presente", end="")
     if report:
