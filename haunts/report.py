@@ -111,9 +111,7 @@ def compute_missing(month=None):
     return missing_report
 
 
-def tune_report(config_dir, month=None, issue=None, project=None):
-    spreadsheet.get_credentials(config_dir)
-    report = compute_report(month)
+def tune_report(report, issue=None, project=None):
     if issue is not None:
         report = {pair: report[pair] for pair in report if issue in pair[1]}
     if project is not None:
@@ -129,7 +127,9 @@ def print_table_header(row_format, sep_format, *args, **kwargs):
 
 
 def print_report(config_dir, month, issue, project, unreported_only, col_sizes):
-    report = tune_report(config_dir, month, issue, project)
+    spreadsheet.get_credentials(config_dir)
+    report = compute_report(month)
+    tuned_report = tune_report(report, issue, project)
 
     c1, c2, c3 = col_sizes
     print_table_header(
@@ -137,7 +137,7 @@ def print_report(config_dir, month, issue, project, unreported_only, col_sizes):
         "Project", "Issue", "Added", "Losts",
         a=c1, b=c2, c=c3
     )
-    for pair, values in report.items():
+    for pair, values in tuned_report.items():
         unreported = sum(v["time"] for v in values if not v["action"])
         reported = sum(v["time"] for v in values if v["action"] == "I")
         if unreported_only and unreported == 0:
@@ -148,15 +148,16 @@ def print_report(config_dir, month, issue, project, unreported_only, col_sizes):
 
 
 def print_detailed_report(config_dir, month, issue, project, unreported_only, col_sizes):
-    report = tune_report(config_dir, month, issue, project)
-
+    spreadsheet.get_credentials(config_dir)
+    report = compute_report(month)
+    tuned_report = tune_report(report, issue, project)
     c1, c2, c3, c4, c5 = col_sizes
     print_table_header(
         ROW_FORMAT_MORE, SEP_FORMAT_MORE,
         "Project", "Issue", "Time", "Added", "Date", "Title",
         a=c1, b=c2, c=c3, d=c4, e=c5
     )
-    for pair, values in report.items():
+    for pair, values in tuned_report.items():
         for v in values:
             is_reported = v["action"] == "I"
             if unreported_only and is_reported:
@@ -172,21 +173,23 @@ def print_mail(config_dir, month, issue, project):
     document, document_id = get_document()
     if month is None:
         month = get_month(document, document_id)
-    report = tune_report(config_dir, month, issue, project)
+    report = compute_report(month)
+    tuned_report = tune_report(report, issue, project)
     first_date = next(iter(report.items()))[1][0]['date']
     locale.setlocale(locale.LC_TIME, 'it_IT.UTF-8')
     m = first_date.strftime('%B').strip()
     y = first_date.strftime('%Y').strip()
     print(f"Presenze {m} {y}\n\n")
     print("Ciao,\n")
-    print(f"a {m} sempre presente", end="")
-    if report:
+    prep = "ad" if m.startswith("A") else "a"
+    print(f"{prep} {m} sempre presente", end="")
+    if tuned_report:
         print(" tranne il:\n")
+        for pair, values in tuned_report.items():
+            for v in values:
+                print(f"- {v['date'].strftime('%d').strip()}: {v['title']}")
     else:
         print(".")
-    for pair, values in report.items():
-        for v in values:
-            print(f"- {v['date'].strftime('%d').strip()}: {v['title']}")
     print("\n\nCiao,\n")
 
 
