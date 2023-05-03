@@ -1,0 +1,359 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+    <title>B-Open Haunts &#8212; B-Open Haunt 0.1.0 documentation</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="_static/alabaster.css" />
+    <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+    <script src="_static/jquery.js"></script>
+    <script src="_static/underscore.js"></script>
+    <script src="_static/doctools.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Installation" href="installation.html" />
+    <link rel="prev" title="Welcome to B-Open Haunt’s documentation!" href="index.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <section id="b-open-haunts">
+<h1><a class="toc-backref" href="#id1">B-Open Haunts</a><a class="headerlink" href="#b-open-haunts" title="Permalink to this headline">¶</a></h1>
+<a class="reference external image-reference" href="https://pypi.python.org/pypi/haunts"><img alt="https://img.shields.io/pypi/v/haunts.svg" src="https://img.shields.io/pypi/v/haunts.svg" /></a>
+<a class="reference external image-reference" href="https://dungeonsdragons.fandom.com/wiki/Haunt"><img alt="Haunt monster" src="docs/haunt.gif" /></a>
+<div class="contents topic" id="table-of-contents">
+<p class="topic-title">Table of Contents</p>
+<ul class="simple">
+<li><p><a class="reference internal" href="#b-open-haunts" id="id1">B-Open Haunts</a></p>
+<ul>
+<li><p><a class="reference internal" href="#what-is-does" id="id2">What is does</a></p></li>
+<li><p><a class="reference internal" href="#how-to-install" id="id3">How to install</a></p></li>
+<li><p><a class="reference internal" href="#prerequisites" id="id4">Prerequisites</a></p></li>
+<li><p><a class="reference internal" href="#how-to-use" id="id5">How to use</a></p>
+<ul>
+<li><p><a class="reference internal" href="#how-it-works" id="id6">How it works</a></p></li>
+<li><p><a class="reference internal" href="#month-sheet-definition" id="id7">Month sheet definition</a></p></li>
+<li><p><a class="reference internal" href="#configuring-calendars-and-projects" id="id8">Configuring calendars and projects</a></p></li>
+<li><p><a class="reference internal" href="#how-events-will-be-filled" id="id9">How events will be filled</a></p></li>
+<li><p><a class="reference internal" href="#actions" id="id10">Actions</a></p></li>
+</ul>
+</li>
+<li><p><a class="reference internal" href="#todo-and-known-issues" id="id11">TODO and known issues</a></p></li>
+<li><p><a class="reference internal" href="#why" id="id12">Why?!</a></p>
+<ul>
+<li><p><a class="reference internal" href="#ok-but-why-haunts" id="id13">OK, but why “haunts”?!</a></p></li>
+</ul>
+</li>
+<li><p><a class="reference internal" href="#credits" id="id14">Credits</a></p></li>
+</ul>
+</li>
+</ul>
+</div>
+<section id="what-is-does">
+<h2><a class="toc-backref" href="#id2">What is does</a><a class="headerlink" href="#what-is-does" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li><p>Fill Google Calendars with events taken from a Google Spreadsheet.</p></li>
+<li><p>Track spent time on Gitlab issues when possible</p></li>
+<li><p>Produce a report with events taken from a Google Spreadsheet.</p></li>
+<li><p>Check if all events in a day sum up to the right duration.</p></li>
+</ul>
+</section>
+<section id="how-to-install">
+<h2><a class="toc-backref" href="#id3">How to install</a><a class="headerlink" href="#how-to-install" title="Permalink to this headline">¶</a></h2>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pip<span class="w"> </span>install<span class="w"> </span>haunts
+</pre></div>
+</div>
+</section>
+<section id="prerequisites">
+<h2><a class="toc-backref" href="#id4">Prerequisites</a><a class="headerlink" href="#prerequisites" title="Permalink to this headline">¶</a></h2>
+<p>To use Google Calendar and Google Spreasheet APIs you must generate a Google API application and download a <em>credentials.json</em>:</p>
+<ul class="simple">
+<li><p>Run <em>haunts</em> for the first time. It will create the <code class="docutils literal notranslate"><span class="pre">~/.haunts</span></code> folder.</p></li>
+<li><p>Go to <a class="reference external" href="https://console.cloud.google.com/home/dashboard">https://console.cloud.google.com/home/dashboard</a> and create a Project called <em>haunts</em>.</p></li>
+<li><p>In the search bar, search <em>Credentials APIs and services</em> and enable it.</p></li>
+<li><p>Click on <em>Create Credentials</em>, set <em>Desktop</em> as the <em>type</em> and save the json file as <code class="docutils literal notranslate"><span class="pre">~/.haunts/credentials.json</span></code>.</p></li>
+<li><p>In the search bar, search <em>Google Sheets API</em> and <em>Google Calendar API</em> and activate them.</p></li>
+<li><p>Run <code class="docutils literal notranslate"><span class="pre">haunts</span></code>, it will ask you to authenticate to both the Google Sheets and the Google Calendar APIs. It will create the following files: <code class="docutils literal notranslate"><span class="pre">~/.haunts/calendars-token.json</span></code> and <code class="docutils literal notranslate"><span class="pre">~/.haunts/sheets-token.json</span></code></p></li>
+</ul>
+</section>
+<section id="how-to-use">
+<h2><a class="toc-backref" href="#id5">How to use</a><a class="headerlink" href="#how-to-use" title="Permalink to this headline">¶</a></h2>
+<p>Command line help is accessible using:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>haunts<span class="w"> </span>--help
+haunts<span class="w"> </span>push<span class="w"> </span>--help
+haunts<span class="w"> </span>report<span class="w"> </span>--help
+haunts<span class="w"> </span>check<span class="w"> </span>--help
+haunts<span class="w"> </span>report-full
+haunts<span class="w"> </span>mail
+</pre></div>
+</div>
+<p>Usage</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>haunts<span class="w"> </span>push<span class="w"> </span>&lt;SHEET_NAME&gt;
+</pre></div>
+</div>
+<p>The first time <code class="docutils literal notranslate"><span class="pre">haunts</span> <span class="pre">push</span></code> will be run, it just create an <cite>.haunts</cite> folder in your home directory with configuration files inside, then it exits.
+You <em>must</em> edit the <code class="docutils literal notranslate"><span class="pre">~/.haunts/haunts.ini</span></code> file.</p>
+<p>Following run attempts will work normally.</p>
+<p>You can also limits events interaction to a single day, or a set of days by using the <code class="docutils literal notranslate"><span class="pre">-d</span></code> parameter (can be used multiple times):</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>haunts<span class="w"> </span>push<span class="w"> </span>--day<span class="o">=</span><span class="m">2021</span>-07-08<span class="w"> </span>&lt;SHEET_NAME&gt;
+</pre></div>
+</div>
+<p>To show the cumulative report on the terminal:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>haunts<span class="w"> </span>report<span class="w"> </span>&lt;SHEET_NAME&gt;
+</pre></div>
+</div>
+<p>To print a report mail on the terminal:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>haunts<span class="w"> </span>mail<span class="w"> </span>&lt;SHEET_NAME&gt;
+</pre></div>
+</div>
+<p>The following command will instead explode the report showing all the events:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>haunts<span class="w"> </span>report-full<span class="w"> </span>&lt;SHEET_NAME&gt;
+</pre></div>
+</div>
+<p>To filter results on issues or projects, options <cite>-i</cite> and <cite>-p</cite> can be used to search for strings
+respectively in <strong>Issue</strong> and <strong>Project</strong> columns of the month sheet.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>haunts<span class="w"> </span>check<span class="w"> </span>&lt;SHEET_NAME&gt;
+</pre></div>
+</div>
+<p>The following command will show days reported to have a total worked hours different than the full day expected total hours (default 8).
+It prints the total worked hours per day in red color if it is less the expected, in green color if bigger.</p>
+<p>Each command will use the last sheet in the Google spreadsheet if no &lt;SHEET_NAME&gt; is provided.</p>
+<section id="how-it-works">
+<h3><a class="toc-backref" href="#id6">How it works</a><a class="headerlink" href="#how-it-works" title="Permalink to this headline">¶</a></h3>
+<p>The command will try to access a Google Spreatsheet you must own (write access required), specifically it will read a single sheet inside the spreadsheet.</p>
+</section>
+<section id="month-sheet-definition">
+<h3><a class="toc-backref" href="#id7">Month sheet definition</a><a class="headerlink" href="#month-sheet-definition" title="Permalink to this headline">¶</a></h3>
+<p>The referenced sheet must contains a set of columns (with headers defined below) but orders matters not.
+Also: additional columns can be added and they will be ignored.</p>
+<p>The partition in multiple sheets is designed to keep every month in a separate sheet, but this is not strictly checked.</p>
+<p><a class="reference external" href="https://docs.google.com/spreadsheets/d/18Ss9r8c9XsrQ4WswQ-YnPfH5y9G4tz1wmrh9GZ8Ta3U">Here</a> is an example template sheet.
+Only white cells should be filled.</p>
+<p>Sheet format should be:</p>
+<dl>
+<dt><strong>Date</strong></dt><dd><p>(date)</p>
+<p>The day where the event will be created.</p>
+</dd>
+<dt><strong>Start</strong></dt><dd><p>(number or empty)</p>
+<p>Start time of the event in the format h:mm (24h).</p>
+</dd>
+<dt><strong>Stop</strong></dt><dd><p>(number or empty)</p>
+<p>End time of the event in the format h:mm (24h).</p>
+</dd>
+<dt><strong>Spent</strong></dt><dd><p>(number or empty)</p>
+<p>Leave this empty. It will be filled with the duration of the event.</p>
+</dd>
+<dt><strong>Calendar</strong></dt><dd><p>(text)</p>
+<p>Calendar name (see below)</p>
+</dd>
+<dt><strong>Project</strong></dt><dd><p>(text)</p>
+<p>Project name (see below)</p>
+</dd>
+<dt><strong>Issue</strong></dt><dd><p>(text)</p>
+<p>Issue number (e.g. #17)</p>
+</dd>
+<dt><strong>Activity</strong></dt><dd><p>(string)</p>
+<p>Summary of the event</p>
+</dd>
+<dt><strong>Details</strong></dt><dd><p>(string, optional)</p>
+<p>Additional text for the event description</p>
+</dd>
+<dt><strong>Event id</strong></dt><dd><p>(string)</p>
+<p>Leave this empty. It will be filled with the id of the generated event</p>
+</dd>
+<dt><strong>Link</strong></dt><dd><p>(text)</p>
+<p>Leave this empty. It will be filled with a link to the event inside Google Calendar.</p>
+</dd>
+<dt><strong>Action</strong></dt><dd><p>(char)</p>
+<p>See below. If empty: it will be filled with an <code class="docutils literal notranslate"><span class="pre">I</span></code> when an event is created.</p>
+</dd>
+<dt><strong>Issue</strong></dt><dd><p>(text)</p>
+<p>ID to uniquely identify the issue. Used for the issues report.</p>
+</dd>
+<dt><strong>Title</strong></dt><dd><p>(text)</p>
+<p>Issue Title. Used for the issues report.</p>
+</dd>
+<dt><strong>Attendees</strong></dt><dd><p>(text, optional)</p>
+<p>Use it to add people to the event. It can be a list of comma separated email addresses.</p>
+</dd>
+</dl>
+</section>
+<section id="configuring-calendars-and-projects">
+<h3><a class="toc-backref" href="#id8">Configuring calendars and projects</a><a class="headerlink" href="#configuring-calendars-and-projects" title="Permalink to this headline">¶</a></h3>
+<p>The spreadsheet must contain a <em>configuration sheet</em> (default name is <code class="docutils literal notranslate"><span class="pre">config</span></code>, can be changed in the .ini) where one must put two columns (with headers):</p>
+<dl class="simple">
+<dt><strong>id</strong></dt><dd><p>The id of the Google Calendar associated to this calendar.
+You must have write access to this calendar.</p>
+</dd>
+<dt><strong>name</strong></dt><dd><p>The name of the calendar, like an alias to the calendar</p>
+</dd>
+</dl>
+<p>A calendar name can be associated to the same calendar id multiple times.</p>
+<p>Values in the <code class="docutils literal notranslate"><span class="pre">name</span></code> columns are the only valid values for the <code class="docutils literal notranslate"><span class="pre">Calendar</span></code> column introduced above</p>
+<p>To report worked hours on GitLab issue the spreadsheet must also contain a <em>project sheet</em> named <code class="docutils literal notranslate"><span class="pre">projects</span></code> where one must put two columns (with headers):</p>
+<dl class="simple">
+<dt><strong>name</strong></dt><dd><p>The name of the project, like an alias to the project</p>
+</dd>
+<dt><strong>id</strong></dt><dd><p>The id of the GitLab project where issues belong.
+You must proper credentials to access to this project.</p>
+</dd>
+</dl>
+</section>
+<section id="how-events-will-be-filled">
+<h3><a class="toc-backref" href="#id9">How events will be filled</a><a class="headerlink" href="#how-events-will-be-filled" title="Permalink to this headline">¶</a></h3>
+<p>Let says you run something like this:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>haunts<span class="w"> </span>push<span class="w"> </span>--day<span class="o">=</span><span class="m">2021</span>-07-08<span class="w"> </span>July
+</pre></div>
+</div>
+<p><em>haunts</em>  will access the sheet named <code class="docutils literal notranslate"><span class="pre">July</span></code> in the spreadsheet configured in the .ini file.
+Only rows where the <code class="docutils literal notranslate"><span class="pre">Date</span></code> filed will match the <code class="docutils literal notranslate"><span class="pre">--day</span></code> parameter will be considered.</p>
+<p>For every rows that match, <em>haunts</em> will:</p>
+<ul class="simple">
+<li><p>Generate a new event, starting from a default time (this can be configured in the .ini).
+The event will last for <code class="docutils literal notranslate"><span class="pre">Spent</span></code> hours</p></li>
+<li><p>The next event will start where the previous ended</p></li>
+<li><p>If the event will be successfully created, an <em>I</em> will be placed in the <code class="docutils literal notranslate"><span class="pre">Action</span></code> column.
+This will make other execution of <em>haunts</em> to ignore the line.</p></li>
+<li><p>Other columns will be read or filled as described above.</p></li>
+</ul>
+</section>
+<section id="actions">
+<h3><a class="toc-backref" href="#id10">Actions</a><a class="headerlink" href="#actions" title="Permalink to this headline">¶</a></h3>
+<p>Possible values you can find (or put yourself) in the <code class="docutils literal notranslate"><span class="pre">Action</span></code> column:</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">I</span></code></p>
+<p>execution will just ignore this line</p>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">D</span></code></p>
+<p>execution will clear <code class="docutils literal notranslate"><span class="pre">Action</span></code>, <code class="docutils literal notranslate"><span class="pre">Event</span> <span class="pre">id</span></code> and <code class="docutils literal notranslate"><span class="pre">Link</span></code> cells for this row.
+So: next execution will likely fill this line again (this is a poor-man-edit)</p>
+</li>
+</ul>
+</section>
+</section>
+<section id="todo-and-known-issues">
+<h2><a class="toc-backref" href="#id11">TODO and known issues</a><a class="headerlink" href="#todo-and-known-issues" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li><p><em>haunts</em> will not check for already filled time slots (yet?), so overlapping of events may happens</p></li>
+</ul>
+</section>
+<section id="why">
+<h2><a class="toc-backref" href="#id12">Why?!</a><a class="headerlink" href="#why" title="Permalink to this headline">¶</a></h2>
+<p>In <a class="reference external" href="https://www.bopen.eu/">B-Open</a> this is how we register our worklogs, participation to projects in multiple Google Calendars.</p>
+<section id="ok-but-why-haunts">
+<h3><a class="toc-backref" href="#id13">OK, but why “haunts”?!</a><a class="headerlink" href="#ok-but-why-haunts" title="Permalink to this headline">¶</a></h3>
+<p>An haunt is a monster from <a class="reference external" href="https://dungeonsdragons.fandom.com/wiki/Haunt">Dungeond&amp;Dragons</a>, which was translated to italian as “Presenza”.</p>
+<p>But “presenza” is the same term used in italian for “participation”, so how we call our worklogs.</p>
+<p>And filling worklogs haunt us.</p>
+</section>
+</section>
+<section id="credits">
+<h2><a class="toc-backref" href="#id14">Credits</a><a class="headerlink" href="#credits" title="Permalink to this headline">¶</a></h2>
+<p>Developer and contributors.</p>
+<ul class="simple">
+<li><p>keul &lt;<a class="reference external" href="mailto:l&#46;fabbri&#37;&#52;&#48;bopen&#46;eu">l<span>&#46;</span>fabbri<span>&#64;</span>bopen<span>&#46;</span>eu</a>&gt; (main worklogs hater)</p></li>
+<li><p>Giusepppe Cammarota &lt;<a class="reference external" href="mailto:g&#46;cammarota&#37;&#52;&#48;bopen&#46;eu">g<span>&#46;</span>cammarota<span>&#64;</span>bopen<span>&#46;</span>eu</a>&gt;</p></li>
+</ul>
+</section>
+</section>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="index.html">B-Open Haunt</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">B-Open Haunts</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#what-is-does">What is does</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#how-to-install">How to install</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#prerequisites">Prerequisites</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#how-to-use">How to use</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#todo-and-known-issues">TODO and known issues</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#why">Why?!</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#credits">Credits</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="usage.html">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="contributing.html">Contributing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="authors.html">Credits</a></li>
+<li class="toctree-l1"><a class="reference internal" href="history.html">History</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+      <li>Previous: <a href="index.html" title="previous chapter">Welcome to B-Open Haunt’s documentation!</a></li>
+      <li>Next: <a href="installation.html" title="next chapter">Installation</a></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2021, Luca Fabbri.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 4.4.0</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="_sources/readme.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

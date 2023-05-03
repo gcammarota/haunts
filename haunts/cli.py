@@ -3,8 +3,10 @@ import datetime
 import os
 import sys
 from pathlib import Path
+from typing import List
 
-import click
+import rich
+import typer
 
 from .ini import create_default, init
 
@@ -23,123 +25,123 @@ if not config_dir.is_dir():
 config = Path(os.path.expanduser(f"{config_dir.resolve()}/haunts.ini"))
 if not config.is_file():
     create_default(config)
-    print(f"Manage you settings at {config.resolve()} and try again")
+    print(f"Manage your settings at {config.resolve()} and try again")
     sys.exit(0)
 else:
     init(config)
 
-
-@click.group()
-@click.version_option(version=None, prog_name="haunts", message="Haunts %(version)s")
-def haunts():
-    pass
-
-
-@click.command()
-@click.option(
-    "--month", "-m", default=None
+app = typer.Typer(
+    no_args_is_help=True,
+    help="Haunts CLI",
 )
-@click.option(
-    "--day",
-    "-d",
-    multiple=True,
-)
-def sync(month, day=[]):
-    """Console script for haunts."""
-    click.echo("Started calendars synchronization")
+
+
+def haunts() -> None:
+    app()
+
+
+@app.command()
+def push(
+    month: str = typer.Option(None, "-m", "--month"),
+    days: List[str] = typer.Option([], "-d", "-days")
+):
+    """Create events on calendar for the month or specific days"""
+    rich.print("Started calendars synchronization")
     init_calendars(config_dir)
     sync_report(
         config_dir,
         month,
-        days=[datetime.datetime.strptime(d, "%Y-%m-%d") for d in day],
+        days=[datetime.datetime.strptime(d, "%Y-%m-%d") for d in days],
     )
-    return 0
 
 
-haunts.add_command(sync, "sync")
-
-
-@click.command()
-@click.option(
-    "--month", "-m", default=None
-)
-@click.option(
-    "--issue", "-i", default=None
-)
-@click.option(
-    "--project", "-p", default=None
-)
-@click.option(
-    "--more", "-e", is_flag=True, default=False
-)
-@click.option(
-    "--unreported_only", "-u", is_flag=True, default=False,
-)
-@click.option(
-    "--mail", "-l", is_flag=True, default=False,
-    help="Print a reporting mail with a recap of the holidays enjoyed in the "
-    "last (in the spreadsheet file) or selected month."
-)
-@click.option(
-    "-c1", default=report.COL_SIZES[0], show_default=True,
-    help="Report first column size in characters."
-)
-@click.option(
-    "-c2", default=report.COL_SIZES[1], show_default=True,
-    help="Report second column size in characters."
-)
-@click.option(
-    "-c3", default=report.COL_SIZES[2], show_default=True,
-    help="Report third column size in characters."
-)
-@click.option(
-    "-c4", default=report.COL_SIZES[3], show_default=True,
-    help="Report fourth column size in characters (Detailed report)."
-)
-@click.option(
-    "-c5", default=report.COL_SIZES[4], show_default=True,
-    help="Report fifth column size in characters (Detailed report)."
-)
-def show_report(month, issue, project, more, unreported_only, mail, c1, c2, c3, c4, c5):
-    """Shows number of spent hours for each issues and projects."""
-    if mail:
-        report.print_mail(
-            config_dir=config_dir,
-            month=month,
-            issue=issue,
-            project="ferie",
+@app.command(name="report")
+def show_report(
+    month: str = typer.Option(None, "-m", "--month"),
+    issue: str = typer.Option(None, "-i", "--issue"),
+    project: str = typer.Option(None, "-p", "--project"),
+    calendar: str = typer.Option(None, "-c", "--calendar"),
+):
+    """Show number of spent hours for each issues and projects aggregated."""
+    check(month)
+    table = rich.table.Table("Project", "Issue", "Added", "Losts")
+    res = report.prepare_report(
+        config_dir=config_dir,
+        month=month,
+        issue=issue,
+        project=project,
+        calendar=calendar,
+    )
+    for triplet, values in res.items():
+        table.add_row(
+            triplet[1],
+            triplet[2],
+            str(sum(v["time"] for v in values if v["action"] == "I")),
+            str(sum(v["time"] for v in values if not v["action"])),
         )
-        return
-    if more:
-        report.print_detailed_report(
-            config_dir=config_dir,
-            month=month,
-            issue=issue,
-            project=project,
-            unreported_only=unreported_only,
-            col_sizes=[c1, c2, c3, c4, c5],
-        )
+    rich.print(table)
+
+
+@app.command(name="report-full")
+def show_detailed_report(
+    month: str = typer.Option(None, "-m", "--month"),
+    issue: str = typer.Option(None, "-i", "--issue"),
+    project: str = typer.Option(None, "-p", "--project"),
+    calendar: str = typer.Option(None, "-c", "--calendar"),
+):
+    """Show number of spent hours for each issues and projects splitted."""
+    check(month)
+    table = rich.table.Table("Project", "Issue", "Time", "Added", "Date", "Title")
+    res = report.prepare_report(
+        config_dir=config_dir,
+        month=month,
+        issue=issue,
+        project=project,
+        calendar=calendar,
+    )
+    for triplet, values in res.items():
+        for v in values:
+            table.add_row(
+                triplet[1],
+                triplet[2],
+                str(v["time"]),
+                str(v["action"] == "I"),
+                v["date"].strftime("%d/%m/%Y").strip(),
+                v["title"],
+            )
+    rich.print(table)
+
+
+@app.command()
+def mail(month: str = typer.Option(None, "-m", "--month")):
+    """Print a reporting mail with a recap of the holidays enjoyed in the last
+    (in the spreadsheet file) or selected month
+
+    """
+    text = report.prepare_mail(
+        config_dir=config_dir,
+        month=month,
+    )
+    rich.print(text)
+
+
+@app.command()
+def check(
+    month: str = typer.Option(None, "-m", "--month"),
+):
+    """Show number of spent hours for each anomalous (!= 8) worked day."""
+    res = report.prepare_incomplete_days(config_dir=config_dir, month=month)
+    if not res:
+        rich.print("🍺 Everything is fine!🍺 ")
     else:
-        report.print_report(
-            config_dir=config_dir,
-            month=month,
-            issue=issue,
-            project=project,
-            unreported_only=unreported_only,
-            col_sizes=[c1, c2, c3],
-        )
-
-
-haunts.add_command(show_report, "report")
-
-
-@click.command()
-@click.option(
-    "--month", "-m", default=None
-)
-def check(month):
-    """Shows number of spent hours for each anomalous worked (!= 8h) day."""
-    report.print_incomplete_days(config_dir, month)
-
-
-haunts.add_command(check, "check")
+        table = rich.table.Table("Incomplete", "Hours")
+        for day, partial in res:
+            if partial < report.FULL_EVENT_HOURS:
+                partial = f"[red]{str(partial)}[/]"
+            else:
+                partial = f"[green]{str(partial)}[/]"
+            table.add_row(
+                day.strftime("%d/%m/%Y"),
+                partial
+            )
+        rich.print(table)

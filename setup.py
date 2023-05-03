@@ -16,6 +16,9 @@ requirements = [
     "google-auth-httplib2",
     "google-auth-oauthlib",
     "google-auth<2dev",
+    "python-gitlab",
+    "rich",
+    "typer",
 ]
 
 test_requirements = []

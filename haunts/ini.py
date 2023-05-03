@@ -24,7 +24,6 @@ def create_default(config):
 
 
 def init(config_file):
-    global configuration
     with open(config_file.resolve(), "r") as config:
         parser.read_file(config)
 

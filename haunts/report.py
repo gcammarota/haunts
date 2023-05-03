@@ -73,11 +73,12 @@ def compute_report(month=None):
         issue = spreadsheet.get_col(row, headers_id["Issue"])
         title = spreadsheet.get_col(row, headers_id["Title"])
         spent = spreadsheet.get_col(row, headers_id["Spent"])
+        calendar = spreadsheet.get_col(row, headers_id["Calendar"])
         project = spreadsheet.get_col(row, headers_id["Project"])
         action = spreadsheet.get_col(row, headers_id["Action"])
         if not spent:
             spent = FULL_EVENT_HOURS
-        report.setdefault((project, issue), []).append(
+        report.setdefault((calendar, project, issue), []).append(
             {"date": date, "time": float(spent), "title": title, "action": action})
 
     return report
@@ -95,11 +96,12 @@ def compute_missing(month=None):
         issue = spreadsheet.get_col(row, headers_id["Issue"])
         title = spreadsheet.get_col(row, headers_id["Title"])
         spent = spreadsheet.get_col(row, headers_id["Spent"])
+        calendar = spreadsheet.get_col(row, headers_id["Calendar"])
         project = spreadsheet.get_col(row, headers_id["Project"])
         if not spent:
             spent = FULL_EVENT_HOURS
         report.setdefault(date, []).append(
-            {"project": project, "issue": issue, "time": float(spent), "title": title})
+            {"calendar": calendar, "project": project, "issue": issue, "time": float(spent), "title": title})
 
     # Select only the days with total spent time less than 8h
     missing_report = {}
@@ -111,11 +113,13 @@ def compute_missing(month=None):
     return missing_report
 
 
-def tune_report(report, issue=None, project=None):
+def tune_report(report, issue=None, project=None, calendar=None):
     if issue is not None:
-        report = {pair: report[pair] for pair in report if issue in pair[1]}
+        report = {triplet: report[triplet] for triplet in report if issue in triplet[2]}
     if project is not None:
-        report = {pair: report[pair] for pair in report if project in pair[0]}
+        report = {triplet: report[triplet] for triplet in report if project in triplet[1]}
+    if calendar is not None:
+        report = {triplet: report[triplet] for triplet in report if calendar in triplet[0]}
     return report
 
 
@@ -126,88 +130,38 @@ def print_table_header(row_format, sep_format, *args, **kwargs):
     print(sep_format.format(*[""] * col_rows, **kwargs))
 
 
-def print_report(config_dir, month, issue, project, unreported_only, col_sizes):
+def prepare_report(config_dir, month=None, issue=None, project=None, calendar=None):
     spreadsheet.get_credentials(config_dir)
     report = compute_report(month)
-    tuned_report = tune_report(report, issue, project)
-
-    c1, c2, c3 = col_sizes
-    print_table_header(
-        ROW_FORMAT, SEP_FORMAT,
-        "Project", "Issue", "Added", "Losts",
-        a=c1, b=c2, c=c3
-    )
-    for pair, values in tuned_report.items():
-        unreported = sum(v["time"] for v in values if not v["action"])
-        reported = sum(v["time"] for v in values if v["action"] == "I")
-        if unreported_only and unreported == 0:
-            continue  # show only unreported hours
-        print(ROW_FORMAT.format(
-            *pair, reported, unreported, a=c1, b=c2, c=c3)
-        )
+    return tune_report(report, issue, project, calendar)
 
 
-def print_detailed_report(config_dir, month, issue, project, unreported_only, col_sizes):
+def prepare_mail(config_dir, month):
     spreadsheet.get_credentials(config_dir)
-    report = compute_report(month)
-    tuned_report = tune_report(report, issue, project)
-    c1, c2, c3, c4, c5 = col_sizes
-    print_table_header(
-        ROW_FORMAT_MORE, SEP_FORMAT_MORE,
-        "Project", "Issue", "Time", "Added", "Date", "Title",
-        a=c1, b=c2, c=c3, d=c4, e=c5
-    )
-    for pair, values in tuned_report.items():
-        for v in values:
-            is_reported = v["action"] == "I"
-            if unreported_only and is_reported:
-                continue  # show only unreported issues
-            print(ROW_FORMAT_MORE.format(
-                *pair, v["time"], f"{is_reported}", v["date"].strftime("%d/%m/%Y").strip(), v["title"],
-                a=c1, b=c2, c=c3, d=c4, e=c5)
-            )
-
-
-def print_mail(config_dir, month, issue, project):
-    spreadsheet.get_credentials(config_dir)
-    document, document_id = get_document()
     if month is None:
-        month = get_month(document, document_id)
+        month = get_month(*get_document())
     report = compute_report(month)
-    tuned_report = tune_report(report, issue, project)
-    first_date = next(iter(report.items()))[1][0]['date']
-    locale.setlocale(locale.LC_TIME, 'it_IT.UTF-8')
-    m = first_date.strftime('%B').strip()
-    y = first_date.strftime('%Y').strip()
-    print(f"Presenze {m} {y}\n\n")
-    print("Ciao,\n")
-    prep = "ad" if m.startswith("A") else "a"
-    print(f"{prep} {m} sempre presente", end="")
+    tuned_report = tune_report(report, calendar="ferie")
+    prep = "ad" if month.startswith("A") else "a"
+    new_line = "\n"
+    holidays = ""
     if tuned_report:
-        print(" tranne il:\n")
-        for pair, values in tuned_report.items():
+        holidays += " tranne il:\n"
+        for _, values in tuned_report.items():
             for v in values:
-                print(f"- {v['date'].strftime('%d').strip()}: {v['title']}")
-    else:
-        print(".")
-    print("\n\nCiao,\n")
-
-
-def print_incomplete_days(config_dir, month=None):
-    spreadsheet.get_credentials(config_dir)
-    report = compute_missing(month)
-    if not report:
-        print("🍺 Everything is fine!🍺 ")
-        return
-    print_table_header(
-        INCOMPLETE_FORMAT, INCOMPLETE_SEP_FORMAT,
-        "Incomplete", "Hours",
-        a=COL_SIZES[3], b=COL_SIZES[2]
+                holidays += f"\n- {v['date'].strftime('%d').strip()}: {v['title']}"
+    mail = (
+        f"Ciao,"
+        f"{new_line * 2}"
+        f"{prep} {month.split(' ')[0]} sempre presente"
+        f"{holidays}"
+        f"{new_line * 3}"
+        f"Ciao,"
+        f"{new_line}"
     )
-    for day, partial in report:
-        partial = RED.format(str(partial)) if partial < FULL_EVENT_HOURS \
-            else GREEN.format(str(partial))
-        print(INCOMPLETE_FORMAT.format(
-            day.strftime("%d/%m/%Y"), partial,
-            a=COL_SIZES[3], b=COL_SIZES[2])
-        )
+    return mail
+
+
+def prepare_incomplete_days(config_dir, month=None):
+    spreadsheet.get_credentials(config_dir)
+    return compute_missing(month)

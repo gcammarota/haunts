@@ -1,8 +1,11 @@
+import datetime
+import json
+import os
 import sys
 import string
 import time
-import datetime
 
+import gitlab
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 from google_auth_oauthlib.flow import InstalledAppFlow
@@ -15,6 +18,7 @@ from .calendars import create_event, delete_event, ORIGIN_TIME
 
 # If modifying these scopes, delete the sheets-token file
 SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
+GITLAB_TOKEN_CONFIG = "gitlab-token.json"
 creds = None
 
 
@@ -63,7 +67,7 @@ def get_headers(sheet, month, indexes=False):
     return {k: string.ascii_lowercase.upper()[values.index(k)] for k in values}
 
 
-def sync_events(config_dir, sheet, data, calendars, days, month):
+def sync_events(config_dir, sheet, data, calendars, projects, days, month):
     """Enumerate every data in the sheet.
     Create an event when action column is empty
     """
@@ -75,6 +79,9 @@ def sync_events(config_dir, sheet, data, calendars, days, month):
     for y, row in enumerate(data["values"]):
         current_date = get_col(row, headers_id["Date"])
         if not current_date:
+            continue
+        calendar = get_col(row, headers_id["Calendar"])
+        if not calendar:
             continue
         date = ORIGIN_TIME + datetime.timedelta(days=current_date)
 
@@ -92,19 +99,18 @@ def sync_events(config_dir, sheet, data, calendars, days, month):
         if skip:
             continue
 
-        calendar = None
+        calendar_id = None
         try:
-            calendar = calendars[get_col(row, headers_id["Project"])]
+            calendar_id = calendars[calendar]
         except KeyError:
-            print(
-                f"Cannot find a calendar id associated to project \"{get_col(row, headers_id['Project'])}\""
-            )
+            print(f"Cannot find a calendar id associated to calendar \"{calendar}\"")
             sys.exit(1)
         attendees = []
-        if "Attendees" in headers_id and get_col(row, headers_id["Attendees"]) is not None:
+        attendees_cell_text = get_col(row, headers_id["Attendees"])
+        if "Attendees" in headers_id and attendees_cell_text is not None:
             attendees = [
                 {"email": attendee.strip()}
-                for attendee in get_col(row, headers_id["Attendees"]).split(",")
+                for attendee in attendees_cell_text.split(",")
             ]
 
         try:
@@ -114,7 +120,7 @@ def sync_events(config_dir, sheet, data, calendars, days, month):
             elif action == actions.DELETE:
                 delete_event(
                     config_dir=config_dir,
-                    calendar=calendar,
+                    calendar=calendar_id,
                     event_id=get_col(row, headers_id["Event id"]),
                 )
                 print(f'Deleted event "{get_col(row, headers_id["Activity"])}"')
@@ -153,7 +159,7 @@ def sync_events(config_dir, sheet, data, calendars, days, month):
 
         event = create_event(
             config_dir=config_dir,
-            calendar=calendar,
+            calendar=calendar_id,
             date=date,
             summary=get_col(row, headers_id["Activity"]),
             details=get_col(row, headers_id["Details"]),
@@ -191,6 +197,51 @@ def sync_events(config_dir, sheet, data, calendars, days, month):
         )
         request.execute()
 
+        project = get_col(row, headers_id["Project"])
+        issue = get_col(row, headers_id["Issue"])
+        try:
+            pid = projects[project]
+        except KeyError:
+            print(f"Cannot find a project id, skipping comment to issue '{issue}'.")
+            continue
+        spent = get_col(row, headers_id["Spent"])
+        if not spent:
+            spent = 8
+        try:
+            url, gitlab_token = read_gitlab_token(config_dir)
+        except ValueError as e:
+            print(f"ValueError: {e}")
+            continue
+        add_spent_time_on_gitlab_issue(
+            url,
+            gitlab_token,
+            pid,
+            issue.strip("#"),
+            spent
+        )
+        print(f"Added {spent} hours to issue {project}{issue}")
+
+
+def read_gitlab_token(config_dir):
+    if GITLAB_TOKEN_CONFIG not in os.listdir(config_dir):
+        raise ValueError("No GitLab token configuration")
+    token_file = config_dir / GITLAB_TOKEN_CONFIG
+    with open(token_file) as f:
+        info = json.load(f)
+    return info["url"], info["token"]
+
+
+def add_spent_time_on_gitlab_issue(gitlab_base_url, private_token, project_id, issue_id, spent):
+    # Authenticate to the GitLab API
+    gl = gitlab.Gitlab(gitlab_base_url, private_token=private_token)
+
+    # Get the issue object
+    project = gl.projects.get(project_id)
+    issue = project.issues.get(issue_id)
+
+    # Add a comment to the issue
+    issue.notes.create({'body': f"/spend {spent}h"})
+
 
 def get_calendars(sheet):
     RANGE = f"{get('CONTROLLER_SHEET_NAME', 'config')}!A2:B"
@@ -201,6 +252,17 @@ def get_calendars(sheet):
     )
     values = calendars.get("values", [])
     return {alias: id for [id, alias] in values}
+
+
+def get_projects(sheet):
+    RANGE = f"{get('CONTROLLER_SHEET_NAME', 'projects')}!A2:B"
+    projects = (
+        sheet.values()
+        .get(spreadsheetId=get("CONTROLLER_SHEET_DOCUMENT_ID"), range=RANGE)
+        .execute()
+    )
+    values = projects.get("values", [])
+    return {alias: id for [alias, id] in values}
 
 
 def sync_report(config_dir, month, days=[]):
@@ -237,4 +299,5 @@ def sync_report(config_dir, month, days=[]):
     )
 
     calendars = get_calendars(sheet)
-    sync_events(config_dir, sheet, data, calendars, days=days, month=month)
+    projects = get_projects(sheet)
+    sync_events(config_dir, sheet, data, calendars, projects, days=days, month=month)

@@ -15,6 +15,7 @@ What is does
 ============
 
 - Fill Google Calendars with events taken from a Google Spreadsheet.
+- Track spent time on Gitlab issues when possible
 - Produce a report with events taken from a Google Spreadsheet.
 - Check if all events in a day sum up to the right duration.
 
@@ -45,17 +46,19 @@ Command line help is accessible using:
 .. code-block:: bash
 
     haunts --help
-    haunts sync --help
+    haunts push --help
     haunts report --help
     haunts check --help
+    haunts report-full
+    haunts mail
 
 Usage
 
 .. code-block:: bash
 
-    haunts sync <SHEET_NAME>
+    haunts push <SHEET_NAME>
 
-The first time ``haunts sync`` will be run, it just create an `.haunts` folder in your home directory with configuration files inside, then it exits.
+The first time ``haunts push`` will be run, it just create an `.haunts` folder in your home directory with configuration files inside, then it exits.
 You *must* edit the ``~/.haunts/haunts.ini`` file.
 
 Following run attempts will work normally.
@@ -64,7 +67,7 @@ You can also limits events interaction to a single day, or a set of days by usin
 
 .. code-block:: bash
 
-    haunts sync --day=2021-07-08 <SHEET_NAME>
+    haunts push --day=2021-07-08 <SHEET_NAME>
 
 To show the cumulative report on the terminal:
 
@@ -76,13 +79,13 @@ To print a report mail on the terminal:
 
 .. code-block:: bash
 
-    haunts report --mail <SHEET_NAME>
+    haunts mail <SHEET_NAME>
 
 The following command will instead explode the report showing all the events:
 
 .. code-block:: bash
 
-    haunts report -e <SHEET_NAME>
+    haunts report-full <SHEET_NAME>
 
 To filter results on issues or projects, options `-i` and `-p` can be used to search for strings
 respectively in **Issue** and **Project** columns of the month sheet.
@@ -134,10 +137,20 @@ Sheet format should be:
 
   Leave this empty. It will be filled with the duration of the event.
 
+**Calendar**
+  (text)
+
+  Calendar name (see below)
+
 **Project**
-  (number)
+  (text)
 
   Project name (see below)
+
+**Issue**
+  (text)
+
+  Issue number (e.g. #17)
 
 **Activity**
   (string)
@@ -179,21 +192,30 @@ Sheet format should be:
 
   Use it to add people to the event. It can be a list of comma separated email addresses.
 
-Configuring projects
---------------------
+Configuring calendars and projects
+----------------------------------
 
-The spreadsheet must also contains a *configuration sheet* (default name is ``config``, can be changed in the .ini) where you must put two columns (with headers):
+The spreadsheet must contain a *configuration sheet* (default name is ``config``, can be changed in the .ini) where one must put two columns (with headers):
 
 **id**
-  The id of the Google Calendar associated to this project.
+  The id of the Google Calendar associated to this calendar.
   You must have write access to this calendar.
 
 **name**
-  The name of the project, like an alias to the calendar
+  The name of the calendar, like an alias to the calendar
 
-A project name can be associated to the same calendar id multiple times.
+A calendar name can be associated to the same calendar id multiple times.
 
-Values in the ``name`` columns are the only valid values for the ``Project`` column introduced above
+Values in the ``name`` columns are the only valid values for the ``Calendar`` column introduced above
+
+To report worked hours on GitLab issue the spreadsheet must also contain a *project sheet* named ``projects`` where one must put two columns (with headers):
+
+**name**
+  The name of the project, like an alias to the project
+
+**id**
+  The id of the GitLab project where issues belong.
+  You must proper credentials to access to this project.
 
 How events will be filled
 -------------------------
@@ -202,7 +224,7 @@ Let says you run something like this:
 
 .. code-block:: bash
 
-    haunts sync --day=2021-07-08 July
+    haunts push --day=2021-07-08 July
 
 *haunts*  will access the sheet named ``July`` in the spreadsheet configured in the .ini file.
 Only rows where the ``Date`` filed will match the ``--day`` parameter will be considered.
@@ -256,3 +278,4 @@ Credits
 Developer and contributors.
 
 * keul <l.fabbri@bopen.eu> (main worklogs hater)
+* Giusepppe Cammarota <g.cammarota@bopen.eu>
