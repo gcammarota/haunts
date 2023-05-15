@@ -80,10 +80,11 @@ def sync_events(config_dir, sheet, data, calendars, projects, days, month):
         current_date = get_col(row, headers_id["Date"])
         if not current_date:
             continue
+        date = ORIGIN_TIME + datetime.timedelta(days=current_date)
         calendar = get_col(row, headers_id["Calendar"])
         if not calendar:
+            print(f"Jumping event on {date.strftime('%Y-%m-%d')} since calendar is not defined")
             continue
-        date = ORIGIN_TIME + datetime.timedelta(days=current_date)
 
         # In case we changed day, let's restart from START_TIME
         if current_date != last_date:
