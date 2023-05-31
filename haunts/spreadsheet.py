@@ -200,6 +200,8 @@ def sync_events(config_dir, sheet, data, calendars, projects, days, month):
 
         project = get_col(row, headers_id["Project"])
         issue = get_col(row, headers_id["Issue"])
+        details = get_col(row, headers_id["Details"])
+
         try:
             pid = projects[project]
         except KeyError:
@@ -218,7 +220,8 @@ def sync_events(config_dir, sheet, data, calendars, projects, days, month):
             gitlab_token,
             pid,
             issue.strip("#"),
-            spent
+            spent,
+            details,
         )
         print(f"Added {spent} hours to issue {project}{issue}")
 
@@ -232,14 +235,20 @@ def read_gitlab_token(config_dir):
     return info["url"], info["token"]
 
 
-def add_spent_time_on_gitlab_issue(gitlab_base_url, private_token, project_id, issue_id, spent):
+def add_spent_time_on_gitlab_issue(gitlab_base_url, private_token, project_id, issue_id, spent, details):
     # Authenticate to the GitLab API
     gl = gitlab.Gitlab(gitlab_base_url, private_token=private_token)
 
     # Get the issue object
     project = gl.projects.get(project_id)
-    issue = project.issues.get(issue_id)
-
+    try:
+        issue = project.issues.get(issue_id)
+    except gitlab.GitlabGetError as e:
+        print(f"Invalid issue '{issue_id}'. Could not add time spent.")
+        if "no" in details:
+            return
+        else:
+            raise(e)
     # Add a comment to the issue
     issue.notes.create({'body': f"/spend {spent}h"})
 
