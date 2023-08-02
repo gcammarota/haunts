@@ -201,6 +201,7 @@ def sync_events(config_dir, sheet, data, calendars, projects, days, month):
         project = get_col(row, headers_id["Project"])
         issue = get_col(row, headers_id["Issue"])
         details = get_col(row, headers_id["Details"])
+        add_to_gitlab = get_col(row, headers_id["Add Spent"])
 
         try:
             pid = projects[project]
@@ -215,15 +216,18 @@ def sync_events(config_dir, sheet, data, calendars, projects, days, month):
         except ValueError as e:
             print(f"ValueError: {e}")
             continue
-        add_spent_time_on_gitlab_issue(
-            url,
-            gitlab_token,
-            pid,
-            issue.strip("#"),
-            spent,
-            details,
-        )
-        print(f"Added {spent} hours to issue {project}{issue}")
+        if add_to_gitlab == "":
+            add_spent_time_on_gitlab_issue(
+                url,
+                gitlab_token,
+                pid,
+                issue.strip("#"),
+                spent,
+                details,
+            )
+            print(f"Added {spent} hours to issue {project}{issue}")
+        else:
+            print(f"Skipped reporting {spent} hours to issue {project}{issue}")
 
 
 def read_gitlab_token(config_dir):
@@ -245,10 +249,9 @@ def add_spent_time_on_gitlab_issue(gitlab_base_url, private_token, project_id, i
         issue = project.issues.get(issue_id)
     except gitlab.GitlabGetError as e:
         print(f"Invalid issue '{issue_id}'. Could not add time spent.")
-        if "no" in details:
+        if "no gitlab" in details.lower():
             return
-        else:
-            raise(e)
+        raise(e)
     # Add a comment to the issue
     issue.notes.create({'body': f"/spend {spent}h"})
 
