@@ -55,6 +55,28 @@ def push(
     )
 
 
+@app.command("check")
+def check_spent_hours(
+    month: str = typer.Option(None, "-m", "--month"),
+):
+    """Show number of spent hours for each anomalous (!= 8) worked day."""
+    res = report.prepare_incomplete_days(config_dir=config_dir, month=month)
+    if not res:
+        rich.print("🍺 Everything is fine!🍺 ")
+    else:
+        table = rich.table.Table("Incomplete", "Hours")
+        for day, partial in res:
+            if partial < report.FULL_EVENT_HOURS:
+                partial = f"[red]{str(partial)}[/]"
+            else:
+                partial = f"[green]{str(partial)}[/]"
+            table.add_row(
+                day.strftime("%d/%m/%Y"),
+                partial
+            )
+        rich.print(table)
+
+
 @app.command(name="report")
 def show_report(
     month: str = typer.Option(None, "-m", "--month"),
@@ -63,8 +85,7 @@ def show_report(
     calendar: str = typer.Option(None, "-c", "--calendar"),
 ):
     """Show number of spent hours for each issues and projects aggregated."""
-    check(month)
-    table = rich.table.Table("Project", "Issue", "Added", "Losts")
+    table = rich.table.Table("Calendar", "Project", "Issue", "Added", "Losts")
     res = report.prepare_report(
         config_dir=config_dir,
         month=month,
@@ -74,6 +95,7 @@ def show_report(
     )
     for triplet, values in res.items():
         table.add_row(
+            triplet[0],
             triplet[1],
             triplet[2],
             str(sum(v["time"] for v in values if v["action"] == "I")),
@@ -90,8 +112,7 @@ def show_detailed_report(
     calendar: str = typer.Option(None, "-c", "--calendar"),
 ):
     """Show number of spent hours for each issues and projects splitted."""
-    check(month)
-    table = rich.table.Table("Project", "Issue", "Time", "Added", "Date", "Title")
+    table = rich.table.Table("Calendar", "Project", "Issue", "Time", "Added", "Date", "Title")
     res = report.prepare_report(
         config_dir=config_dir,
         month=month,
@@ -102,6 +123,7 @@ def show_detailed_report(
     for triplet, values in res.items():
         for v in values:
             table.add_row(
+                triplet[0],
                 triplet[1],
                 triplet[2],
                 str(v["time"]),
@@ -123,25 +145,3 @@ def mail(month: str = typer.Option(None, "-m", "--month")):
         month=month,
     )
     rich.print(text)
-
-
-@app.command()
-def check(
-    month: str = typer.Option(None, "-m", "--month"),
-):
-    """Show number of spent hours for each anomalous (!= 8) worked day."""
-    res = report.prepare_incomplete_days(config_dir=config_dir, month=month)
-    if not res:
-        rich.print("🍺 Everything is fine!🍺 ")
-    else:
-        table = rich.table.Table("Incomplete", "Hours")
-        for day, partial in res:
-            if partial < report.FULL_EVENT_HOURS:
-                partial = f"[red]{str(partial)}[/]"
-            else:
-                partial = f"[green]{str(partial)}[/]"
-            table.add_row(
-                day.strftime("%d/%m/%Y"),
-                partial
-            )
-        rich.print(table)

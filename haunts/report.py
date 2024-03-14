@@ -109,7 +109,6 @@ def compute_missing(month=None):
         day_total_spent = sum([el["time"] for el in r])
         if day_total_spent != 8:
             missing_report.update({(d, day_total_spent): r})
-
     return missing_report
 
 
