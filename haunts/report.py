@@ -1,6 +1,5 @@
 import sys
 import datetime
-import locale
 
 from googleapiclient.discovery import build
 
