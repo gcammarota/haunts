@@ -11,21 +11,22 @@ import typer
 from .ini import create_default, init
 
 from .calendars import init as init_calendars
+from .downloads import extract_events
 from .spreadsheet import sync_report
 from . import report
 
 config_dir = Path(os.path.expanduser("~/.haunts"))
 
 if not config_dir.is_dir():
-    print(f"Creating config directory at {config_dir.resolve()}")
+    rich.print(f"Creating config directory at {config_dir.resolve()}")
     config_dir.mkdir()
-    print("…created")
+    rich.print("…created")
 
 
 config = Path(os.path.expanduser(f"{config_dir.resolve()}/haunts.ini"))
 if not config.is_file():
     create_default(config)
-    print(f"Manage your settings at {config.resolve()} and try again")
+    rich.print(f"Manage your settings at {config.resolve()} and try again")
     sys.exit(0)
 else:
     init(config)
@@ -52,6 +53,19 @@ def push(
         config_dir,
         month,
         days=[datetime.datetime.strptime(d, "%Y-%m-%d") for d in days],
+    )
+
+
+@app.command()
+def pull(
+    day: str = typer.Option(datetime.date.today().strftime("%Y-%m-%d"), "-d", "-days")
+):
+    """Create events on calendar for the month or specific days"""
+    rich.print("Started calendars synchronization")
+    init_calendars(config_dir)
+    extract_events(
+        config_dir,
+        day=datetime.datetime.strptime(day, "%Y-%m-%d"),
     )
 
 

@@ -6,6 +6,8 @@ from googleapiclient.discovery import build
 from .ini import get
 from . import spreadsheet
 from .calendars import ORIGIN_TIME
+from .spreadsheet import SCOPES
+from .credentials import get_credentials
 
 
 FULL_EVENT_HOURS = 8
@@ -20,8 +22,9 @@ RED = "\x1b[1;31;40m{}\x1b[0m"
 GREEN = "\x1b[1;32;40m{}\x1b[0m"
 
 
-def get_document():
-    service = build("sheets", "v4", credentials=spreadsheet.creds)
+def get_document(config_dir):
+    creds = get_credentials(config_dir, SCOPES, "sheets-token.json")
+    service = build("sheets", "v4", credentials=creds)
     # Call the Sheets API
     document = service.spreadsheets()
     try:
@@ -40,8 +43,8 @@ def get_month(document, document_id):
     return sheets["sheets"][-1]["properties"]["title"]
 
 
-def prepare_report_data(month=None):
-    document, document_id = get_document()
+def prepare_report_data(config_dir, month=None):
+    document, document_id = get_document(config_dir)
     if month is None:
         month = get_month(document, document_id)
     print("Sheet: {}\n".format(month))
@@ -60,8 +63,8 @@ def prepare_report_data(month=None):
     return data, headers_id
 
 
-def compute_report(month=None):
-    data, headers_id = prepare_report_data(month)
+def compute_report(config_dir, month=None):
+    data, headers_id = prepare_report_data(config_dir, month)
 
     report = {}
     for row in data["values"]:
@@ -83,8 +86,8 @@ def compute_report(month=None):
     return report
 
 
-def compute_missing(month=None):
-    data, headers_id = prepare_report_data(month)
+def compute_missing(config_dir, month=None):
+    data, headers_id = prepare_report_data(config_dir, month)
 
     report = {}
     for row in data["values"]:
@@ -129,16 +132,16 @@ def print_table_header(row_format, sep_format, *args, **kwargs):
 
 
 def prepare_report(config_dir, month=None, issue=None, project=None, calendar=None):
-    spreadsheet.get_credentials(config_dir)
-    report = compute_report(month)
+    get_credentials(config_dir, SCOPES, "sheets-token.json")
+    report = compute_report(config_dir, month)
     return tune_report(report, issue, project, calendar)
 
 
 def prepare_mail(config_dir, month):
-    spreadsheet.get_credentials(config_dir)
+    get_credentials(config_dir, SCOPES, "sheets-token.json")
     if month is None:
-        month = get_month(*get_document())
-    report = compute_report(month)
+        month = get_month(*get_document(config_dir))
+    report = compute_report(config_dir, month)
     tuned_report = tune_report(report, calendar="ferie")
     prep = "ad" if month.startswith("A") else "a"
     new_line = "\n"
@@ -161,5 +164,5 @@ def prepare_mail(config_dir, month):
 
 
 def prepare_incomplete_days(config_dir, month=None):
-    spreadsheet.get_credentials(config_dir)
-    return compute_missing(month)
+    get_credentials(config_dir, SCOPES, "sheets-token.json")
+    return compute_missing(config_dir, month)

@@ -15,11 +15,11 @@ from google.oauth2.credentials import Credentials
 from .ini import get
 from . import actions
 from .calendars import create_event, delete_event, ORIGIN_TIME
+from .credentials import get_credentials
 
 # If modifying these scopes, delete the sheets-token file
 SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
 GITLAB_TOKEN_CONFIG = "gitlab-token.json"
-creds = None
 
 
 def get_col(row, index):
@@ -29,30 +29,101 @@ def get_col(row, index):
         return None
 
 
-def get_credentials(config_dir):
-    global creds
-    if creds is not None:
-        return
-    # The token stores the user's access and refresh tokens, and is
-    # created automatically when the authorization flow completes for the first
-    # time.
-    token = config_dir / "sheets-token.json"
-    credentials = config_dir / "credentials.json"
-    if token.is_file():
-        creds = Credentials.from_authorized_user_file(token.resolve(), SCOPES)
-    # If there are no (valid) credentials available, let the user log in.
-    if not creds or not creds.valid:
-        if creds and creds.expired and creds.refresh_token:
-            creds.refresh(Request())
-        else:
-            flow = InstalledAppFlow.from_client_secrets_file(
-                credentials.resolve(), SCOPES
-            )
-            creds = flow.run_local_server(port=0)
-        # Save the credentials for the next run
-        with open(token.resolve(), "w") as token_file:
-            token_file.write(creds.to_json())
+def get_first_empty_line(sheet, month):
+    """Get the first empty line in a month."""
+    RANGE = f"{month}!A1:A"
+    lines = (
+        sheet.values().get(spreadsheetId=get("CONTROLLER_SHEET_DOCUMENT_ID"), range=RANGE).execute()
+    )
+    values = lines.get("values", [])
+    return len(values) + 1
 
+
+def format_duration(duration):
+    """Given a timedelta duration, format is as a string.
+
+    String format will be H,X or H if minutes are 0.
+    X is the decimal part of the hour (30 minutes are 0.5 hours, etc)
+    """
+    hours = duration.total_seconds() / 3600
+    if hours % 1 == 0:
+        return str(int(hours))
+    return str(hours).replace(".", ",")
+
+
+def append_line(
+    sheet,
+    month,
+    date_col,
+    start_col,
+    stop_col,
+    calendar_col,
+    activity_col,
+    event_id_col=None,
+    link_col="",
+    details_col="",
+    action_col="",
+    duration_col=None,
+):
+    """Append a new line at the end of a sheet."""
+    next_av_line = get_first_empty_line(sheet, month)
+    headers_id = get_headers(sheet, month, indexes=True)
+    # Now write a new line at position next_av_line
+    RANGE = f"{month}!A{next_av_line}:ZZ{next_av_line}"
+    values_line = []
+    formatted_time_col = start_col.strftime("%H.%M") if start_col else ""
+    formatted_stop_col = stop_col.strftime("%H.%M") if stop_col else ""
+    formatted_duration_col = format_duration(duration_col) if duration_col else ""
+    full_day = formatted_time_col == "00:00" and formatted_duration_col == "24"
+    for key, index in headers_id.items():
+        if key == "Date":
+            values_line.append(date_col.strftime("%d/%m/%Y"))
+        elif key == get("START_TIME_COLUMN_NAME", "Start time"):
+            values_line.append(formatted_time_col if not full_day else "")
+        elif key == get("STOP_TIME_COLUMN_NAME", "Stop time"):
+            values_line.append(formatted_stop_col if not full_day else "")
+        elif key == get("CALENDAR_COLUMN_NAME", "Calendar"):
+            values_line.append(calendar_col)
+        elif key == get("ACTIVITY_COLUMN_NAME", "Title"):
+            values_line.append(activity_col)
+        elif key == get("DETAILS_COLUMN_NAME", "Details"):
+            values_line.append(details_col)
+        elif key == get("EVENT_ID_COLUMN_NAME", "Event id"):
+            values_line.append(event_id_col)
+        elif key == get("LINK_COLUMN_NAME", "Link"):
+            values_line.append(link_col)
+        elif key == get("ACTION_COLUMN_NAME", "Action"):
+            values_line.append(action_col)
+        elif key == get("SPENT_COLUMN_NAME", "Spent"):
+            values_line.append(formatted_duration_col if not full_day else "")
+        else:
+            values_line.append("")
+
+    request = sheet.values().batchUpdate(
+        spreadsheetId=get("CONTROLLER_SHEET_DOCUMENT_ID"),
+        body={
+            "valueInputOption": "USER_ENTERED",
+            "data": [
+                {
+                    "range": RANGE,
+                    "values": [values_line],
+                },
+            ],
+        },
+    )
+
+    try:
+        request.execute()
+    except HttpError as err:
+        if err.status_code == 429:
+            #click.echo("Too many requests")
+            #click.echo(err.error_details)
+            #click.echo("haunts will now pause for a while ⏲…")
+            time.sleep(60)
+            #click.echo("Retrying…")
+            request.execute()
+        else:
+            raise
 
 def get_headers(sheet, month, indexes=False):
     """Scan headers of a month and returns a structure that assign headers names to indexes"""
@@ -267,6 +338,44 @@ def get_calendars(sheet):
     return {alias: id for [id, alias] in values}
 
 
+def get_calendar_col_values(sheet, month, col_name):
+    """Get all events ids for a month."""
+    headers_ids = get_headers(sheet, month, indexes=True)
+    col_of_interest = headers_ids.get(col_name)
+    # transform a zero.based index to a capital letter
+    col_of_interest = string.ascii_uppercase[col_of_interest]
+    RANGE = f"{month}!{col_of_interest}2:{col_of_interest}"
+    events = (
+        sheet.values().get(spreadsheetId=get("CONTROLLER_SHEET_DOCUMENT_ID"), range=RANGE).execute()
+    )
+    values = events.get("values", [])
+    return [e[0] for e in values if e]
+
+
+def get_calendars_names(sheet, flat=True):
+    """Get all calendars names, giving precedence to alias defined in column "linked_calendar".
+
+    If multiple aliases are found, the first one will be used
+    """
+    RANGE = f"{get('CONTROLLER_SHEET_NAME', 'config')}!A2:C"
+    calendars = (
+        sheet.values().get(spreadsheetId=get("CONTROLLER_SHEET_DOCUMENT_ID"), range=RANGE).execute()
+    )
+    values = calendars.get("values", [])
+    names = {}
+    for cols in values:
+        try:
+            id, alias, linked_id = cols
+        except ValueError:
+            # no linked_id
+            id, alias = cols
+            linked_id = None
+        if names.get(linked_id) or (names.get(id) and not linked_id):
+            continue
+        names[linked_id or id] = alias if flat else {"alias": alias, "is_linked": bool(linked_id)}
+    return names
+
+
 def get_projects(sheet):
     RANGE = f"{get('CONTROLLER_SHEET_NAME', 'projects')}!A2:B"
     projects = (
@@ -281,7 +390,7 @@ def get_projects(sheet):
 def sync_report(config_dir, month, days=[]):
     """Open a sheet, analyze it and populate calendars with new events"""
     # The ID and range of the controller timesheet
-    get_credentials(config_dir)
+    creds = get_credentials(config_dir, SCOPES, "sheets-token.json")
 
     service = build("sheets", "v4", credentials=creds)
 

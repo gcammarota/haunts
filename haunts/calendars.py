@@ -7,6 +7,7 @@ from google.oauth2.credentials import Credentials
 
 from . import LOGGER
 from .ini import get
+from .credentials import get_credentials
 
 LOCAL_TIMEZONE = datetime.datetime.utcnow().astimezone().strftime("%z")
 # Weird google spreadsheet date management
@@ -15,40 +16,14 @@ ORIGIN_TIME = datetime.datetime.strptime(
 )
 # If modifying these scopes, delete the calendars-token file.
 SCOPES = ["https://www.googleapis.com/auth/calendar"]
-creds = None
-
-
-def get_credentials(config_dir):
-    global creds
-    if creds is not None:
-        return
-    # The file token.json stores the user's access and refresh tokens, and is
-    # created automatically when the authorization flow completes for the first
-    # time.
-    token = config_dir / "calendars-token.json"
-    credentials = config_dir / "credentials.json"
-    if token.is_file():
-        creds = Credentials.from_authorized_user_file(token.resolve(), SCOPES)
-    # If there are no (valid) credentials available, let the user log in.
-    if not creds or not creds.valid:
-        if creds and creds.expired and creds.refresh_token:
-            creds.refresh(Request())
-        else:
-            flow = InstalledAppFlow.from_client_secrets_file(
-                credentials.resolve(), SCOPES
-            )
-            creds = flow.run_local_server(port=0)
-        # Save the credentials for the next run
-        with open(token.resolve(), "w") as token:
-            token.write(creds.to_json())
 
 
 def init(config_dir):
-    get_credentials(config_dir)
+    get_credentials(config_dir, SCOPES, "calendars-token.json")
 
 
 def create_event(config_dir, calendar, date, summary, details, start_time, stop_time, attendees, from_time=None):
-    get_credentials(config_dir)
+    creds = get_credentials(config_dir, SCOPES, "calendars-token.json")
     service = build("calendar", "v3", credentials=creds)
 
     from_time = from_time or get("START_TIME")
@@ -99,7 +74,7 @@ def execute(config_dir):
     """Shows basic usage of the Google Calendar API.
     Prints the start and name of the next 10 events on the user's calendar.
     """
-    get_credentials(config_dir)
+    creds = get_credentials(config_dir, SCOPES, "calendars-token.json")
 
     service = build("calendar", "v3", credentials=creds)
 
@@ -127,7 +102,7 @@ def execute(config_dir):
 
 
 def delete_event(config_dir, calendar, event_id):
-    get_credentials(config_dir)
+    creds = get_credentials(config_dir, SCOPES, "calendars-token.json")
     service = build("calendar", "v3", credentials=creds)
     if not event_id:
         print("Missing id. Skipping…")
