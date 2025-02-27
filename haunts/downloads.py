@@ -136,13 +136,15 @@ def extract_events(config_dir, day):
         duration = end_datetime - start_datetime
         event_id = event["id"] if not is_linked else ""
         if event_id and event_id in all_sheet_events:
-            rich.print(f"[yellow]Event {event_summary} already present in {sheet}. Skipping…[/]")
+            rich.print(
+                f"[black on yellow]Event {event_summary} already present in {sheet}. "
+                f"Skipping…[/]")
             continue
         event_link = event.get("htmlLink", "")
         if event_link and event_link in all_sheet_event_urls:
             rich.print(
-                f"[yellow]A link to event {event_summary} already present in {sheet} ({event_link}). [/]"
-                f"[yellow]Skipping…[/]"
+                f"[black on yellow]A link to event {event_summary} already present in {sheet} ({event_link}). "
+                f"Skipping…[/]"
             )
             continue
         rich.print(
