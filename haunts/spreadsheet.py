@@ -177,13 +177,6 @@ def sync_events(config_dir, sheet, data, calendars, projects, days, month):
         except KeyError:
             print(f"Cannot find a calendar id associated to calendar \"{calendar}\"")
             sys.exit(1)
-        attendees = []
-        attendees_cell_text = get_col(row, headers_id["Attendees"])
-        if "Attendees" in headers_id and attendees_cell_text is not None:
-            attendees = [
-                {"email": attendee.strip()}
-                for attendee in attendees_cell_text.split(",")
-            ]
 
         try:
             action = row[headers_id["Action"]]
@@ -237,7 +230,6 @@ def sync_events(config_dir, sheet, data, calendars, projects, days, month):
             details=get_col(row, headers_id["Details"]),
             start_time=get_col(row, headers_id["Start"]),
             stop_time=get_col(row, headers_id["Stop"]),
-            attendees=attendees,
             from_time=last_to_time,
         )
         last_to_time = event["next_slot"]

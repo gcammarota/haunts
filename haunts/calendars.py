@@ -22,9 +22,10 @@ def init(config_dir):
     get_credentials(config_dir, SCOPES, "calendars-token.json")
 
 
-def create_event(config_dir, calendar, date, summary, details, start_time, stop_time, attendees, from_time=None):
+def create_event(config_dir, calendar, date, summary, details, start_time, stop_time, from_time=None):
     creds = get_credentials(config_dir, SCOPES, "calendars-token.json")
     service = build("calendar", "v3", credentials=creds)
+    user = get("USER_EMAIL")
 
     from_time = from_time or get("START_TIME")
     today = datetime.datetime.strptime(
@@ -53,7 +54,7 @@ def create_event(config_dir, calendar, date, summary, details, start_time, stop_
         "description": details,
         "start": startParams,
         "end": endParams,
-        "attendees": attendees,
+        "attendees": [{"email": user}],
     }
 
     LOGGER.debug(calendar, date, summary, details, start, end, event)

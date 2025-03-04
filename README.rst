@@ -187,11 +187,6 @@ Sheet format should be:
 
   Issue Title. Used for the issues report.
 
-**Attendees**
-  (text, optional)
-
-  Use it to add people to the event. It can be a list of comma separated email addresses.
-
 Configuring calendars and projects
 ----------------------------------
 
