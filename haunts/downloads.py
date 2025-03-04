@@ -7,7 +7,7 @@ from googleapiclient.discovery import build
 
 from .calendars import SCOPES as CALENDAR_SCOPES
 from .credentials import get_credentials
-from .ini import get
+from .ini import get, get_user_email
 from .spreadsheet import SCOPES as SPREADSHEET_SCOPES
 from .spreadsheet import (
     append_line,
@@ -17,6 +17,7 @@ from .spreadsheet import (
 )
 
 locale.setlocale(locale.LC_ALL, "it_IT")
+USER_EMAIL = get_user_email()
 
 
 def filter_my_events(events):
@@ -26,9 +27,6 @@ def filter_my_events(events):
 
     Exclude events where the user has declined the invitation.
     """
-    USER_EMAIL = get("USER_EMAIL")
-    if USER_EMAIL is None:
-        raise KeyError("USER_EMAIL not set in configuration")
     for event in events:
         if (
             event.get("creator", {}).get("email") == USER_EMAIL
@@ -92,7 +90,7 @@ def extract_events(config_dir, day):
     configured_calendars = get_calendars(
         sheet_service
     )  # ignore_alias=True, use_read_col=True
-    configured_calendars["???"] = get("USER_EMAIL")
+    configured_calendars["???"] = USER_EMAIL
     all_events = []
     # Get "my events" from all configured calendars in the selected date
     already_added_events = set()
@@ -112,7 +110,7 @@ def extract_events(config_dir, day):
     # Get calendar configurations
     calendar_names = get_calendars_names(sheet_service, flat=False)
     # Forcibly add the user's calendar to the list
-    calendar_names[get("USER_EMAIL")] = {"alias": "???", "is_linked": False}
+    calendar_names[USER_EMAIL] = {"alias": "???", "is_linked": False}
 
     # Get a list of all events ids already present in the sheet
     # This to prevent adding the same event multiple times

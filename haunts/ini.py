@@ -34,3 +34,10 @@ def get(name, default=None):
     if value is None:
         raise KeyError(f"Not found: {name}")
     return default if value is None else value
+
+
+def get_user_email():
+    user_email = get("USER_EMAIL")
+    if user_email is None:
+        raise KeyError("USER_EMAIL not set in configuration")
+    return user_email
