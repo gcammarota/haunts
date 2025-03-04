@@ -8,9 +8,7 @@ import time
 import gitlab
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
-from google_auth_oauthlib.flow import InstalledAppFlow
-from google.auth.transport.requests import Request
-from google.oauth2.credentials import Credentials
+import rich
 
 from .ini import get
 from . import actions
@@ -116,14 +114,15 @@ def append_line(
         request.execute()
     except HttpError as err:
         if err.status_code == 429:
-            #click.echo("Too many requests")
-            #click.echo(err.error_details)
-            #click.echo("haunts will now pause for a while ⏲…")
+            rich.print("Too many requests")
+            rich.print(err.error_details)
+            rich.print("haunts will now pause for a while ⏲…")
             time.sleep(60)
-            #click.echo("Retrying…")
+            rich.print("Retrying…")
             request.execute()
         else:
             raise
+
 
 def get_headers(sheet, month, indexes=False):
     """Scan headers of a month and returns a structure that assign headers names to indexes"""
@@ -154,7 +153,7 @@ def sync_events(config_dir, sheet, data, calendars, projects, days, month):
         date = ORIGIN_TIME + datetime.timedelta(days=current_date)
         calendar = get_col(row, headers_id["Calendar"])
         if not calendar:
-            print(f"Jumping event on {date.strftime('%Y-%m-%d')} since calendar is not defined")
+            rich.print(f"Jumping event on {date.strftime('%Y-%m-%d')} since calendar is not defined")
             continue
 
         # In case we changed day, let's restart from START_TIME
@@ -175,7 +174,7 @@ def sync_events(config_dir, sheet, data, calendars, projects, days, month):
         try:
             calendar_id = calendars[calendar]
         except KeyError:
-            print(f"Cannot find a calendar id associated to calendar \"{calendar}\"")
+            rich.print(f"Cannot find a calendar id associated to calendar \"{calendar}\"")
             sys.exit(1)
 
         try:
@@ -188,7 +187,7 @@ def sync_events(config_dir, sheet, data, calendars, projects, days, month):
                     calendar=calendar_id,
                     event_id=get_col(row, headers_id["Event id"]),
                 )
-                print(f'Deleted event "{get_col(row, headers_id["Activity"])}"')
+                rich.print(f'Deleted event "{get_col(row, headers_id["Activity"])}"')
                 request = sheet.values().batchClear(
                     spreadsheetId=get("CONTROLLER_SHEET_DOCUMENT_ID"),
                     body={
@@ -204,11 +203,11 @@ def sync_events(config_dir, sheet, data, calendars, projects, days, month):
                     request.execute()
                 except HttpError as err:
                     if err.status_code == 429:
-                        print("Too many requests")
-                        print(err.error_details)
-                        print("haunts will now pause for a while ⏲…")
+                        rich.print("Too many requests")
+                        rich.print(err.error_details)
+                        rich.print("haunts will now pause for a while ⏲…")
                         time.sleep(60)
-                        print("Retrying…")
+                        rich.print("Retrying…")
                         request.execute()
                     else:
                         raise
@@ -216,7 +215,7 @@ def sync_events(config_dir, sheet, data, calendars, projects, days, month):
                 continue
             else:
                 # There's something in the action cell, but not recognized
-                print(f"Unknown action {action}. Ignoring…")
+                rich.print(f"Unknown action {action}. Ignoring…")
                 continue
         except IndexError:
             # We have no data there
@@ -269,7 +268,7 @@ def sync_events(config_dir, sheet, data, calendars, projects, days, month):
         try:
             pid = projects[project]
         except KeyError:
-            print(f"Cannot find a project id, skipping comment to issue '{issue}'.")
+            rich.print(f"Cannot find a project id, skipping comment to issue '{issue}'.")
             continue
         spent = get_col(row, headers_id["Spent"])
         if not spent:
@@ -277,7 +276,7 @@ def sync_events(config_dir, sheet, data, calendars, projects, days, month):
         try:
             url, gitlab_token = read_gitlab_token(config_dir)
         except ValueError as e:
-            print(f"ValueError: {e}")
+            rich.print(f"ValueError: {e}")
             continue
         if add_to_gitlab == "":
             add_spent_time_on_gitlab_issue(
@@ -288,9 +287,9 @@ def sync_events(config_dir, sheet, data, calendars, projects, days, month):
                 spent,
                 details,
             )
-            print(f"Added {spent} hours to issue {project}{issue}")
+            rich.print(f"Added {spent} hours to issue {project}{issue}")
         else:
-            print(f"Skipped reporting {spent} hours to issue {project}{issue}")
+            rich.print(f"Skipped reporting {spent} hours to issue {project}{issue}")
 
 
 def read_gitlab_token(config_dir):
@@ -311,7 +310,7 @@ def add_spent_time_on_gitlab_issue(gitlab_base_url, private_token, project_id, i
     try:
         issue = project.issues.get(issue_id)
     except gitlab.GitlabGetError as e:
-        print(f"Invalid issue '{issue_id}'. Could not add time spent.")
+        rich.print(f"Invalid issue '{issue_id}'. Could not add time spent.")
         if "no gitlab" in details.lower():
             return
         raise(e)
@@ -392,7 +391,7 @@ def sync_report(config_dir, month, days=[]):
     try:
         document_id = get("CONTROLLER_SHEET_DOCUMENT_ID")
     except KeyError:
-        print(
+        rich.print(
             "A value for CONTROLLER_SHEET_DOCUMENT_ID is required but "
             "is not specified in your ini file"
         )
@@ -401,7 +400,7 @@ def sync_report(config_dir, month, days=[]):
     if month is None:
         sheets = sheet.get(spreadsheetId=document_id).execute()
         month = sheets["sheets"][-1]["properties"]["title"]
-    print("Sheet: {}".format(month))
+    rich.print("Sheet: {}".format(month))
     data = (
         sheet.values()
         .get(

@@ -2,6 +2,7 @@ import sys
 import datetime
 
 from googleapiclient.discovery import build
+import rich
 
 from .ini import get
 from . import spreadsheet
@@ -30,7 +31,7 @@ def get_document(config_dir):
     try:
         document_id = get("CONTROLLER_SHEET_DOCUMENT_ID")
     except KeyError:
-        print(
+        rich.print(
             "A value for CONTROLLER_SHEET_DOCUMENT_ID is required but "
             "is not specified in your ini file"
         )
@@ -47,7 +48,7 @@ def prepare_report_data(config_dir, month=None):
     document, document_id = get_document(config_dir)
     if month is None:
         month = get_month(document, document_id)
-    print("Sheet: {}\n".format(month))
+    rich.print("Sheet: {}\n".format(month))
 
     data = (
         document.values()
@@ -126,9 +127,9 @@ def tune_report(report, issue=None, project=None, calendar=None):
 
 def print_table_header(row_format, sep_format, *args, **kwargs):
     col_rows = len(args)
-    print(sep_format.format(*[""] * col_rows, **kwargs))
-    print(row_format.format(*args, **kwargs))
-    print(sep_format.format(*[""] * col_rows, **kwargs))
+    rich.print(sep_format.format(*[""] * col_rows, **kwargs))
+    rich.print(row_format.format(*args, **kwargs))
+    rich.print(sep_format.format(*[""] * col_rows, **kwargs))
 
 
 def prepare_report(config_dir, month=None, issue=None, project=None, calendar=None):

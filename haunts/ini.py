@@ -1,4 +1,5 @@
 import configparser
+import rich
 
 
 DEFAULT_INI = """[haunts]
@@ -17,10 +18,10 @@ parser = configparser.RawConfigParser(allow_no_value=True)
 
 
 def create_default(config):
-    print("Creating default configuration")
+    rich.print("Creating default configuration")
     with open(config.resolve(), "w") as f:
         f.write(DEFAULT_INI)
-    print("Created")
+    rich.print("Created")
 
 
 def init(config_file):

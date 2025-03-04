@@ -2,7 +2,6 @@ from dateutil import tz
 import locale
 from googleapiclient.discovery import build
 from datetime import datetime, timedelta
-from colorama import Back, Fore, Style
 import rich
 
 from .ini import get
@@ -107,7 +106,7 @@ def extract_events(config_dir, day):
     all_events.sort(key=lambda x: x["start"].get("dateTime", x["start"].get("date")))
     if not all_events:
         rich.print("No events found.")
-        return    
+        return
     # Get calendar configurations
     calendar_names = get_calendars_names(sheet_service, flat=False)
     # Forcibly add the user's calendar to the list

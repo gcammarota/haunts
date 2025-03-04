@@ -1,9 +1,7 @@
 import datetime
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
-from google_auth_oauthlib.flow import InstalledAppFlow
-from google.auth.transport.requests import Request
-from google.oauth2.credentials import Credentials
+import rich
 
 from . import LOGGER
 from .ini import get
@@ -60,7 +58,7 @@ def create_event(config_dir, calendar, date, summary, details, start_time, stop_
     LOGGER.debug(calendar, date, summary, details, start, end, event)
     event = service.events().insert(calendarId=calendar, body=event).execute()
     LOGGER.debug(event.items())
-    print(
+    rich.print(
         f'Created event "{summary}" ({f"{today_str} {spent_comment}"}) on calendar {event["organizer"]["displayName"]}'
     )
     event_data = {
@@ -81,7 +79,7 @@ def execute(config_dir):
 
     # Call the Calendar API
     now = datetime.datetime.utcnow().isoformat() + "Z"  # 'Z' indicates UTC time
-    print("Getting the upcoming 10 events")
+    rich.print("Getting the upcoming 10 events")
     events_result = (
         service.events()
         .list(
@@ -96,20 +94,20 @@ def execute(config_dir):
     events = events_result.get("items", [])
 
     if not events:
-        print("No upcoming events found.")
+        rich.print("No upcoming events found.")
     for event in events:
         start = event["start"].get("dateTime", event["start"].get("date"))
-        print(start, event["summary"])
+        rich.print(start, event["summary"])
 
 
 def delete_event(config_dir, calendar, event_id):
     creds = get_credentials(config_dir, SCOPES, "calendars-token.json")
     service = build("calendar", "v3", credentials=creds)
     if not event_id:
-        print("Missing id. Skipping…")
+        rich.print("Missing id. Skipping…")
         return
     try:
         service.events().delete(calendarId=calendar, eventId=event_id).execute()
     except HttpError as err:
         if err.status_code == 410:
-            print("Event {event_id} already deleted")
+            rich.print("Event {event_id} already deleted")

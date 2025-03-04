@@ -2,12 +2,12 @@
 
 import sys
 
-import click
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
+import rich
 
-credentials_cache = {}
+credentials_cache: dict = {}
 
 
 def get_credentials(config_dir, scopes, token_file):
@@ -21,7 +21,7 @@ def get_credentials(config_dir, scopes, token_file):
     token = config_dir / token_file
     credentials = config_dir / "credentials.json"
     if not credentials.exists():
-        click.echo(
+        rich.print(
             f"Missing credentials file at {credentials.resolve()}. "
             f"Did you created a Google Cloud project and downloaded the credentials file?"
         )
