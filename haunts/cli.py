@@ -1,4 +1,5 @@
 """Console script for haunts."""
+
 import datetime
 import os
 import sys
@@ -8,12 +9,11 @@ from typing import List
 import rich
 import typer
 
-from .ini import create_default, init
-
+from . import report
 from .calendars import init as init_calendars
 from .downloads import extract_events
+from .ini import create_default, init
 from .spreadsheet import sync_report
-from . import report
 
 config_dir = Path(os.path.expanduser("~/.haunts"))
 
@@ -44,7 +44,7 @@ def haunts() -> None:
 @app.command()
 def push(
     month: str = typer.Option(None, "-m", "--month"),
-    days: List[str] = typer.Option([], "-d", "-days")
+    days: List[str] = typer.Option([], "-d", "-days"),
 ):
     """Create events on calendar for the month or specific days"""
     rich.print("Started calendars synchronization")
@@ -84,10 +84,7 @@ def check_spent_hours(
                 partial = f"[red]{str(partial)}[/]"
             else:
                 partial = f"[green]{str(partial)}[/]"
-            table.add_row(
-                day.strftime("%d/%m/%Y"),
-                partial
-            )
+            table.add_row(day.strftime("%d/%m/%Y"), partial)
         rich.print(table)
 
 
@@ -126,7 +123,9 @@ def show_detailed_report(
     calendar: str = typer.Option(None, "-c", "--calendar"),
 ):
     """Show number of spent hours for each issues and projects splitted."""
-    table = rich.table.Table("Calendar", "Project", "Issue", "Time", "Added", "Date", "Title")
+    table = rich.table.Table(
+        "Calendar", "Project", "Issue", "Time", "Added", "Date", "Title"
+    )
     res = report.prepare_report(
         config_dir=config_dir,
         month=month,

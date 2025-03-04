@@ -1,11 +1,12 @@
 import datetime
+
+import rich
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
-import rich
 
 from . import LOGGER
-from .ini import get
 from .credentials import get_credentials
+from .ini import get
 
 LOCAL_TIMEZONE = datetime.datetime.utcnow().astimezone().strftime("%z")
 # Weird google spreadsheet date management
@@ -14,16 +15,18 @@ ORIGIN_TIME = datetime.datetime.strptime(
 )
 # If modifying these scopes, delete the calendars-token file.
 SCOPES = ["https://www.googleapis.com/auth/calendar"]
+USER = get("USER_EMAIL")
 
 
 def init(config_dir):
     get_credentials(config_dir, SCOPES, "calendars-token.json")
 
 
-def create_event(config_dir, calendar, date, summary, details, start_time, stop_time, from_time=None):
+def create_event(
+    config_dir, calendar, date, summary, details, start_time, stop_time, from_time=None
+):
     creds = get_credentials(config_dir, SCOPES, "calendars-token.json")
     service = build("calendar", "v3", credentials=creds)
-    user = get("USER_EMAIL")
 
     from_time = from_time or get("START_TIME")
     today = datetime.datetime.strptime(
@@ -42,7 +45,9 @@ def create_event(config_dir, calendar, date, summary, details, start_time, stop_
         startParams.update({"dateTime": start.isoformat()})
         end = today + datetime.timedelta(days=stop_time)
         endParams.update({"dateTime": end.isoformat()})
-        spent_comment = f'{start.strftime("%H:%M")}' + " - " + f'{end.strftime("%H:%M")}'
+        spent_comment = (
+            f'{start.strftime("%H:%M")}' + " - " + f'{end.strftime("%H:%M")}'
+        )
     else:
         startParams.update({"date": start.isoformat()[:10]})
         endParams.update({"date": end.isoformat()[:10]})
@@ -52,7 +57,7 @@ def create_event(config_dir, calendar, date, summary, details, start_time, stop_
         "description": details,
         "start": startParams,
         "end": endParams,
-        "attendees": [{"email": user}],
+        "attendees": [{"email": USER}],
     }
 
     LOGGER.debug(calendar, date, summary, details, start, end, event)

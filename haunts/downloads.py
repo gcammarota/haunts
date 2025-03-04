@@ -1,22 +1,22 @@
-from dateutil import tz
 import locale
-from googleapiclient.discovery import build
 from datetime import datetime, timedelta
-import rich
 
-from .ini import get
+import rich
+from dateutil import tz
+from googleapiclient.discovery import build
+
+from .calendars import SCOPES as CALENDAR_SCOPES
 from .credentials import get_credentials
+from .ini import get
+from .spreadsheet import SCOPES as SPREADSHEET_SCOPES
 from .spreadsheet import (
     append_line,
-    get_calendars_names,
-    get_calendars,
     get_calendar_col_values,
+    get_calendars,
+    get_calendars_names,
 )
-from .spreadsheet import SCOPES as SPREADSHEET_SCOPES
-from .calendars import SCOPES as CALENDAR_SCOPES
 
-
-locale.setlocale(locale.LC_ALL, 'it_IT')
+locale.setlocale(locale.LC_ALL, "it_IT")
 
 
 def filter_my_events(events):
@@ -89,7 +89,9 @@ def extract_events(config_dir, day):
 
     rich.print(f"Checking your calendars at {day}…")
 
-    configured_calendars = get_calendars(sheet_service)#, ignore_alias=True, use_read_col=True)
+    configured_calendars = get_calendars(
+        sheet_service
+    )  # ignore_alias=True, use_read_col=True
     configured_calendars["???"] = get("USER_EMAIL")
     all_events = []
     # Get "my events" from all configured calendars in the selected date
@@ -137,7 +139,8 @@ def extract_events(config_dir, day):
         if event_id and event_id in all_sheet_events:
             rich.print(
                 f"[black on yellow]Event {event_summary} already present in {sheet}. "
-                f"Skipping…[/]")
+                f"Skipping…[/]"
+            )
             continue
         event_link = event.get("htmlLink", "")
         if event_link and event_link in all_sheet_event_urls:

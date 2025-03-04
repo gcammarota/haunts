@@ -1,19 +1,19 @@
 import datetime
 import json
 import os
-import sys
 import string
+import sys
 import time
 
 import gitlab
+import rich
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
-import rich
 
-from .ini import get
 from . import actions
-from .calendars import create_event, delete_event, ORIGIN_TIME
+from .calendars import ORIGIN_TIME, create_event, delete_event
 from .credentials import get_credentials
+from .ini import get
 
 # If modifying these scopes, delete the sheets-token file
 SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
@@ -31,7 +31,9 @@ def get_first_empty_line(sheet, month):
     """Get the first empty line in a month."""
     RANGE = f"{month}!A1:A"
     lines = (
-        sheet.values().get(spreadsheetId=get("CONTROLLER_SHEET_DOCUMENT_ID"), range=RANGE).execute()
+        sheet.values()
+        .get(spreadsheetId=get("CONTROLLER_SHEET_DOCUMENT_ID"), range=RANGE)
+        .execute()
     )
     values = lines.get("values", [])
     return len(values) + 1
@@ -47,6 +49,21 @@ def format_duration(duration):
     if hours % 1 == 0:
         return str(int(hours))
     return str(hours).replace(".", ",")
+
+
+def try_request(request):
+    try:
+        request.execute()
+    except HttpError as err:
+        if err.status_code == 429:
+            rich.print("Too many requests")
+            rich.print(err.error_details)
+            rich.print("haunts will now pause for a while ⏲…")
+            time.sleep(60)
+            rich.print("Retrying…")
+            request.execute()
+        else:
+            raise
 
 
 def append_line(
@@ -110,18 +127,7 @@ def append_line(
         },
     )
 
-    try:
-        request.execute()
-    except HttpError as err:
-        if err.status_code == 429:
-            rich.print("Too many requests")
-            rich.print(err.error_details)
-            rich.print("haunts will now pause for a while ⏲…")
-            time.sleep(60)
-            rich.print("Retrying…")
-            request.execute()
-        else:
-            raise
+    try_request(request)
 
 
 def get_headers(sheet, month, indexes=False):
@@ -153,7 +159,9 @@ def sync_events(config_dir, sheet, data, calendars, projects, days, month):
         date = ORIGIN_TIME + datetime.timedelta(days=current_date)
         calendar = get_col(row, headers_id["Calendar"])
         if not calendar:
-            rich.print(f"Jumping event on {date.strftime('%Y-%m-%d')} since calendar is not defined")
+            rich.print(
+                f"Jumping event on {date.strftime('%Y-%m-%d')} since calendar is not defined"
+            )
             continue
 
         # In case we changed day, let's restart from START_TIME
@@ -170,12 +178,10 @@ def sync_events(config_dir, sheet, data, calendars, projects, days, month):
         if skip:
             continue
 
-        calendar_id = None
-        try:
-            calendar_id = calendars[calendar]
-        except KeyError:
-            rich.print(f"Cannot find a calendar id associated to calendar \"{calendar}\"")
-            sys.exit(1)
+        calendar_id = calendars.get(calendar)
+        if calendar_id is None:
+            rich.print(f'Cannot find a calendar id associated to calendar "{calendar}"')
+            raise KeyError
 
         try:
             action = row[headers_id["Action"]]
@@ -199,19 +205,7 @@ def sync_events(config_dir, sheet, data, calendars, projects, days, month):
                     },
                 )
 
-                try:
-                    request.execute()
-                except HttpError as err:
-                    if err.status_code == 429:
-                        rich.print("Too many requests")
-                        rich.print(err.error_details)
-                        rich.print("haunts will now pause for a while ⏲…")
-                        time.sleep(60)
-                        rich.print("Retrying…")
-                        request.execute()
-                    else:
-                        raise
-
+                try_request(request)
                 continue
             else:
                 # There's something in the action cell, but not recognized
@@ -268,7 +262,9 @@ def sync_events(config_dir, sheet, data, calendars, projects, days, month):
         try:
             pid = projects[project]
         except KeyError:
-            rich.print(f"Cannot find a project id, skipping comment to issue '{issue}'.")
+            rich.print(
+                f"Cannot find a project id, skipping comment to issue '{issue}'."
+            )
             continue
         spent = get_col(row, headers_id["Spent"])
         if not spent:
@@ -301,7 +297,9 @@ def read_gitlab_token(config_dir):
     return info["url"], info["token"]
 
 
-def add_spent_time_on_gitlab_issue(gitlab_base_url, private_token, project_id, issue_id, spent, details):
+def add_spent_time_on_gitlab_issue(
+    gitlab_base_url, private_token, project_id, issue_id, spent, details
+):
     # Authenticate to the GitLab API
     gl = gitlab.Gitlab(gitlab_base_url, private_token=private_token)
 
@@ -313,9 +311,9 @@ def add_spent_time_on_gitlab_issue(gitlab_base_url, private_token, project_id, i
         rich.print(f"Invalid issue '{issue_id}'. Could not add time spent.")
         if "no gitlab" in details.lower():
             return
-        raise(e)
+        raise RuntimeError(e)
     # Add a comment to the issue
-    issue.notes.create({'body': f"/spend {spent}h"})
+    issue.notes.create({"body": f"/spend {spent}h"})
 
 
 def get_calendars(sheet):
@@ -337,7 +335,9 @@ def get_calendar_col_values(sheet, month, col_name):
     col_of_interest = string.ascii_uppercase[col_of_interest]
     RANGE = f"{month}!{col_of_interest}2:{col_of_interest}"
     events = (
-        sheet.values().get(spreadsheetId=get("CONTROLLER_SHEET_DOCUMENT_ID"), range=RANGE).execute()
+        sheet.values()
+        .get(spreadsheetId=get("CONTROLLER_SHEET_DOCUMENT_ID"), range=RANGE)
+        .execute()
     )
     values = events.get("values", [])
     return [e[0] for e in values if e]
@@ -350,7 +350,9 @@ def get_calendars_names(sheet, flat=True):
     """
     RANGE = f"{get('CONTROLLER_SHEET_NAME', 'config')}!A2:C"
     calendars = (
-        sheet.values().get(spreadsheetId=get("CONTROLLER_SHEET_DOCUMENT_ID"), range=RANGE).execute()
+        sheet.values()
+        .get(spreadsheetId=get("CONTROLLER_SHEET_DOCUMENT_ID"), range=RANGE)
+        .execute()
     )
     values = calendars.get("values", [])
     names = {}
@@ -363,7 +365,9 @@ def get_calendars_names(sheet, flat=True):
             linked_id = None
         if names.get(linked_id) or (names.get(id) and not linked_id):
             continue
-        names[linked_id or id] = alias if flat else {"alias": alias, "is_linked": bool(linked_id)}
+        names[linked_id or id] = (
+            alias if flat else {"alias": alias, "is_linked": bool(linked_id)}
+        )
     return names
 
 

@@ -1,15 +1,14 @@
-import sys
 import datetime
+import sys
 
-from googleapiclient.discovery import build
 import rich
+from googleapiclient.discovery import build
 
-from .ini import get
 from . import spreadsheet
 from .calendars import ORIGIN_TIME
-from .spreadsheet import SCOPES
 from .credentials import get_credentials
-
+from .ini import get
+from .spreadsheet import SCOPES
 
 FULL_EVENT_HOURS = 8
 ROW_FORMAT = "{:<{a}} {:<{b}} {:>{c}} {:>{c}}"
@@ -82,7 +81,8 @@ def compute_report(config_dir, month=None):
         if not spent:
             spent = FULL_EVENT_HOURS
         report.setdefault((calendar, project, issue), []).append(
-            {"date": date, "time": float(spent), "title": title, "action": action})
+            {"date": date, "time": float(spent), "title": title, "action": action}
+        )
 
     return report
 
@@ -104,7 +104,14 @@ def compute_missing(config_dir, month=None):
         if not spent:
             spent = FULL_EVENT_HOURS
         report.setdefault(date, []).append(
-            {"calendar": calendar, "project": project, "issue": issue, "time": float(spent), "title": title})
+            {
+                "calendar": calendar,
+                "project": project,
+                "issue": issue,
+                "time": float(spent),
+                "title": title,
+            }
+        )
 
     # Select only the days with total spent time less than 8h
     missing_report = {}
@@ -119,9 +126,13 @@ def tune_report(report, issue=None, project=None, calendar=None):
     if issue is not None:
         report = {triplet: report[triplet] for triplet in report if issue in triplet[2]}
     if project is not None:
-        report = {triplet: report[triplet] for triplet in report if project in triplet[1]}
+        report = {
+            triplet: report[triplet] for triplet in report if project in triplet[1]
+        }
     if calendar is not None:
-        report = {triplet: report[triplet] for triplet in report if calendar in triplet[0]}
+        report = {
+            triplet: report[triplet] for triplet in report if calendar in triplet[0]
+        }
     return report
 
 

@@ -1,6 +1,6 @@
 import configparser
-import rich
 
+import rich
 
 DEFAULT_INI = """[haunts]
 # The Google Sheet Document id where you register events
