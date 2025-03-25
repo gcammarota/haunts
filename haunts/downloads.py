@@ -17,23 +17,23 @@ from .spreadsheet import (
 )
 
 locale.setlocale(locale.LC_ALL, "it_IT")
-USER_EMAIL = get_user_email()
 
 
 def filter_my_events(events):
     """
-    Take a list of Google Calendar events and returns events created by USER_EMAIL
-    or events that have USER_EMAIL in the attendees list.
+    Take a list of Google Calendar events and returns events created by user_email
+    or events that have user_email in the attendees list.
 
     Exclude events where the user has declined the invitation.
     """
+    user_email = get_user_email()
     for event in events:
         if (
-            event.get("creator", {}).get("email") == USER_EMAIL
+            event.get("creator", {}).get("email") == user_email
             and event.get("attendees", []) == []
         ):
             yield event
-        elif USER_EMAIL in [
+        elif user_email in [
             attendee.get("email")
             for attendee in event.get("attendees", [])
             if attendee.get("responseStatus") in ["accepted", "needsAction"]
@@ -87,10 +87,11 @@ def extract_events(config_dir, day):
 
     rich.print(f"Checking your calendars at {day}…")
 
+    user_email = get_user_email()
     configured_calendars = get_calendars(
         sheet_service
     )  # ignore_alias=True, use_read_col=True
-    configured_calendars["???"] = USER_EMAIL
+    configured_calendars["???"] = user_email
     all_events = []
     # Get "my events" from all configured calendars in the selected date
     already_added_events = set()
@@ -110,7 +111,7 @@ def extract_events(config_dir, day):
     # Get calendar configurations
     calendar_names = get_calendars_names(sheet_service, flat=False)
     # Forcibly add the user's calendar to the list
-    calendar_names[USER_EMAIL] = {"alias": "???", "is_linked": False}
+    calendar_names[user_email] = {"alias": "???", "is_linked": False}
 
     # Get a list of all events ids already present in the sheet
     # This to prevent adding the same event multiple times

@@ -15,7 +15,6 @@ ORIGIN_TIME = datetime.datetime.strptime(
 )
 # If modifying these scopes, delete the calendars-token file.
 SCOPES = ["https://www.googleapis.com/auth/calendar"]
-USER_EMAIL = get_user_email()
 
 
 def init(config_dir):
@@ -57,7 +56,7 @@ def create_event(
         "description": details,
         "start": startParams,
         "end": endParams,
-        "attendees": [{"email": USER_EMAIL}],
+        "attendees": [{"email": get_user_email()}],
     }
 
     LOGGER.debug(calendar, date, summary, details, start, end, event)
