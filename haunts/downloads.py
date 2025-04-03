@@ -128,8 +128,10 @@ def extract_events(config_dir, day):
         calendar = calendar_names[event["calendar_id"]]["alias"]
         is_linked = calendar_names[event["calendar_id"]]["is_linked"]
 
-        start_datetime = datetime.fromisoformat(start[:19])
-        end_datetime = datetime.fromisoformat(end[:19])
+        start_d = datetime.fromisoformat(start[:19]).replace(tzinfo=tz.tzutc())
+        end_d = datetime.fromisoformat(end[:19]).replace(tzinfo=tz.tzutc())
+        start_datetime = start_d.astimezone(tz.gettz("Europe/Rome"))
+        end_datetime = end_d.astimezone(tz.gettz("Europe/Rome"))
         start_date = start_datetime.date()
         start_time = start_datetime.time()
         end_time = end_datetime.time()
