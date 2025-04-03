@@ -90,6 +90,13 @@ def append_line(
     formatted_stop_col = stop_col.strftime("%H.%M") if stop_col else ""
     formatted_duration_col = format_duration(duration_col) if duration_col else ""
     full_day = formatted_time_col == "00:00" and formatted_duration_col == "24"
+    line = (
+        sheet.values().get(
+            spreadsheetId=get("CONTROLLER_SHEET_DOCUMENT_ID"),
+            range=RANGE,
+            valueRenderOption="FORMULA",
+        ).execute()
+    )
     for key, index in headers_id.items():
         if key == "Date":
             values_line.append(date_col.strftime("%d/%m/%Y"))
@@ -112,8 +119,7 @@ def append_line(
         elif key == get("SPENT_COLUMN_NAME", "Spent"):
             values_line.append(formatted_duration_col if not full_day else "")
         else:
-            values_line.append("")
-
+            values_line.append(get_col(line["values"][0], headers_id[key]))
     request = sheet.values().batchUpdate(
         spreadsheetId=get("CONTROLLER_SHEET_DOCUMENT_ID"),
         body={
