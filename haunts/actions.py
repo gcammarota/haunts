@@ -4,3 +4,5 @@
 IGNORE = "I"
 # Delete the event
 DELETE = "D"
+# Pulled from calendar, not recreate event
+PULLED = "P"

@@ -18,7 +18,7 @@ from .ini import get
 # If modifying these scopes, delete the sheets-token file
 SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
 GITLAB_TOKEN_CONFIG = "gitlab-token.json"
-
+ACTION_COLUMN_LETTER = "P"
 
 def get_col(row, index):
     try:
@@ -157,6 +157,7 @@ def sync_events(config_dir, sheet, data, calendars, projects, days, month):
     headers_id = get_headers(sheet, month, indexes=True)
     last_to_time = None
     last_date = None
+    document_id = get("CONTROLLER_SHEET_DOCUMENT_ID")
 
     for y, row in enumerate(data["values"]):
         current_date = get_col(row, headers_id["Date"])
@@ -188,7 +189,7 @@ def sync_events(config_dir, sheet, data, calendars, projects, days, month):
         if calendar_id is None:
             rich.print(f'Cannot find a calendar id associated to calendar "{calendar}"')
             raise KeyError
-
+        action = None
         try:
             action = row[headers_id["Action"]]
             if action == actions.IGNORE:
@@ -201,7 +202,7 @@ def sync_events(config_dir, sheet, data, calendars, projects, days, month):
                 )
                 rich.print(f'Deleted event "{get_col(row, headers_id["Activity"])}"')
                 request = sheet.values().batchClear(
-                    spreadsheetId=get("CONTROLLER_SHEET_DOCUMENT_ID"),
+                    spreadsheetId=document_id,
                     body={
                         "ranges": [
                             f"{month}!{headers['Event id']}{y + 2}",
@@ -213,6 +214,9 @@ def sync_events(config_dir, sheet, data, calendars, projects, days, month):
 
                 try_request(request)
                 continue
+            elif action == actions.PULLED:
+                # Do not create event
+                pass
             else:
                 # There's something in the action cell, but not recognized
                 rich.print(f"Unknown action {action}. Ignoring…")
@@ -221,49 +225,62 @@ def sync_events(config_dir, sheet, data, calendars, projects, days, month):
             # We have no data there
             pass
 
-        event = create_event(
-            config_dir=config_dir,
-            calendar=calendar_id,
-            date=date,
-            summary=get_col(row, headers_id["Activity"]),
-            details=get_col(row, headers_id["Details"]),
-            start_time=get_col(row, headers_id["Start"]),
-            stop_time=get_col(row, headers_id["Stop"]),
-            from_time=last_to_time,
-        )
-        last_to_time = event["next_slot"]
+        #import pdb; pdb.set_trace()
+        if action is None:
+            event = create_event(
+                config_dir=config_dir,
+                calendar=calendar_id,
+                date=date,
+                summary=get_col(row, headers_id["Activity"]),
+                details=get_col(row, headers_id["Details"]),
+                start_time=get_col(row, headers_id["Start"]),
+                stop_time=get_col(row, headers_id["Stop"]),
+                from_time=last_to_time,
+            )
+            last_to_time = event["next_slot"]
 
-        # Save the event id, required to interact with the event in future
-        request = sheet.values().update(
-            spreadsheetId=get("CONTROLLER_SHEET_DOCUMENT_ID"),
-            range=f"{month}!{headers['Action']}{y + 2}",
-            valueInputOption="RAW",
-            body={"values": [[actions.IGNORE]]},
-        )
-        request.execute()
+            # Save the event id, required to interact with the event in future
+            request = sheet.values().update(
+                spreadsheetId=document_id,
+                range=f"{month}!{headers['Action']}{y + 2}",
+                valueInputOption="RAW",
+                body={"values": [[actions.IGNORE]]},
+            )
+            request.execute()
 
-        # Save the event id, required to interact with the event in future
-        request = sheet.values().update(
-            spreadsheetId=get("CONTROLLER_SHEET_DOCUMENT_ID"),
-            range=f"{month}!{headers['Event id']}{y + 2}",
-            valueInputOption="RAW",
-            body={"values": [[event["id"]]]},
-        )
-        request.execute()
+            # Save the event id, required to interact with the event in future
+            request = sheet.values().update(
+                spreadsheetId=document_id,
+                range=f"{month}!{headers['Event id']}{y + 2}",
+                valueInputOption="RAW",
+                body={"values": [[event["id"]]]},
+            )
+            request.execute()
 
-        # Quick link to the event on the calendar
-        request = sheet.values().update(
-            spreadsheetId=get("CONTROLLER_SHEET_DOCUMENT_ID"),
-            range=f"{month}!{headers['Link']}{y + 2}",
-            valueInputOption="USER_ENTERED",
-            body={"values": [[f"=HYPERLINK(\"{event['link']}\";\"open\")"]]},
-        )
-        request.execute()
+            # Quick link to the event on the calendar
+            request = sheet.values().update(
+                spreadsheetId=document_id,
+                range=f"{month}!{headers['Link']}{y + 2}",
+                valueInputOption="USER_ENTERED",
+                body={"values": [[f"=HYPERLINK(\"{event['link']}\";\"open\")"]]},
+            )
+            request.execute()
 
         project = get_col(row, headers_id["Project"])
         issue = get_col(row, headers_id["Issue"])
         details = get_col(row, headers_id["Details"])
         add_to_gitlab = get_col(row, headers_id["Add Spent"])
+        if action == actions.PULLED:
+            sheet.values().update(
+                spreadsheetId=document_id,
+                range=f"{month}!{ACTION_COLUMN_LETTER}{y + 2}",
+                valueInputOption='USER_ENTERED',
+                body={'values': [["I"]]}
+            ).execute()
+            rich.print(
+                "Updated action in haunts spreadsheet for event "
+                f'{get_col(row, headers_id["Event id"])}, row: {y+2}'
+            )
 
         try:
             pid = projects[project]

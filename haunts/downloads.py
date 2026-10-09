@@ -174,7 +174,7 @@ def extract_events(config_dir, day):
             details_col=event.get("description", ""),
             event_id_col=event_id,
             link_col=event_link,
-            action_col="I" if not is_linked and calendar != "???" else "",
+            action_col="P" if not is_linked and calendar != "???" else "I",
         )
 
     rich.print("Done!")
