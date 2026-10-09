@@ -1,5 +1,5 @@
 import locale
-from datetime import datetime, timedelta
+from datetime import datetime, time, timedelta
 
 import rich
 from dateutil import tz
@@ -127,15 +127,23 @@ def extract_events(config_dir, day):
         end = event["end"].get("dateTime", event["end"].get("date"))
         calendar = calendar_names[event["calendar_id"]]["alias"]
         is_linked = calendar_names[event["calendar_id"]]["is_linked"]
-
+        daily = False
+        time_zone = event["start"].get("timeZone")
+        if time_zone is None:
+            daily = True
+            time_zone = "Europe/Rome"
         start_d = datetime.fromisoformat(start[:19]).replace(tzinfo=tz.tzutc())
         end_d = datetime.fromisoformat(end[:19]).replace(tzinfo=tz.tzutc())
-        start_datetime = start_d.astimezone(tz.gettz("Europe/Rome"))
-        end_datetime = end_d.astimezone(tz.gettz("Europe/Rome"))
+        start_datetime = start_d.astimezone(tz.gettz(time_zone))
+        end_datetime = end_d.astimezone(tz.gettz(time_zone))
         start_date = start_datetime.date()
         start_time = start_datetime.time()
         end_time = end_datetime.time()
         duration = end_datetime - start_datetime
+        if daily:
+            start_time = time(9)
+            end_time = time(17)
+            duration = timedelta(hours=8)
         event_id = event["id"] if not is_linked else ""
         if event_id and event_id in all_sheet_events:
             rich.print(
